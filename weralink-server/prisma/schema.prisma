@@ -11,3 +11,265 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+// --- 1. USER & PROFILE CORE ---
+
+enum UserRole {
+  WORKER
+  EMPLOYER
+  ADMIN
+}
+
+enum UserStatus {
+  PENDING_OTP
+  ACTIVE
+  SUSPENDED
+}
+
+model User {
+  id        String     @id @db.Uuid
+  email     String     @unique
+  phone     String     @unique
+  name      String
+  role      UserRole   @default(WORKER)
+  status    UserStatus @default(PENDING_OTP)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  profile Profile?
+
+  // Relations
+  skills      UserSkill[]
+  badges      UserBadge[]
+  postedJobs  Job[]              @relation("EmployerJobs")
+  assignments Assignment[]       @relation("WorkerAssignments")
+  completions ModuleCompletion[]
+  reports     Report[]
+
+  // Self-referencing Rating relationship
+  ratingsGiven Rating[] @relation("Rater")
+  ratingsRecv  Rating[] @relation("Ratee")
+}
+
+model Profile {
+  id                 String   @id @default(uuid())
+  userId             String   @unique @db.Uuid
+  user               User     @relation(fields: [userId], references: [id])
+  bio                String?
+  location           String?
+  availabilityStatus Boolean  @default(true)
+  portfolioUrls      String[]
+  verified           Boolean  @default(false)
+}
+
+// --- 2. TRUST & SKILL ECOSYSTEM ---
+
+model Skill {
+  id       String @id @default(uuid())
+  name     String @unique
+  category String
+
+  users UserSkill[]
+  jobs  JobSkill[]
+}
+
+model UserSkill {
+  id         String    @id @default(uuid())
+  userId     String    @db.Uuid
+  skillId    String
+  level      Int       @default(1) // 1-5 scale
+  verified   Boolean   @default(false)
+  verifiedAt DateTime?
+
+  user  User  @relation(fields: [userId], references: [id])
+  skill Skill @relation(fields: [skillId], references: [id])
+
+  @@unique([userId, skillId])
+}
+
+model Badge {
+  id          String @id @default(uuid())
+  name        String @unique
+  description String
+  criteria    String
+
+  users UserBadge[]
+}
+
+model UserBadge {
+  id        String   @id @default(uuid())
+  userId    String   @db.Uuid
+  badgeId   String
+  awardedAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id])
+  badge Badge @relation(fields: [badgeId], references: [id])
+
+  @@unique([userId, badgeId])
+}
+
+// --- 3. GIG & EXECUTION WORKFLOW --- [cite: 332, 472]
+
+enum JobStatus {
+  OPEN
+  ASSIGNED
+  COMPLETED
+  CLOSED
+  CANCELLED
+}
+
+model Job {
+  id          String    @id @default(uuid())
+  employerId  String    @db.Uuid
+  employer    User      @relation("EmployerJobs", fields: [employerId], references: [id])
+  title       String
+  description String
+  payAmount   Decimal   @db.Decimal(10, 2)
+  currency    String    @default("KES")
+  location    String
+  status      JobStatus @default(OPEN)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  expiresAt   DateTime?
+
+  // Dynamic Evidence Requirement 
+  // Format: [{"type": "VIDEO", "min": 1}, {"type": "LINK", "min": 1}]
+  evidenceTemplate Json
+
+  skills      JobSkill[]
+  assignments Assignment[]
+}
+
+model JobSkill {
+  id            String @id @default(uuid())
+  jobId         String
+  skillId       String
+  requiredLevel Int    @default(1)
+
+  job   Job   @relation(fields: [jobId], references: [id])
+  skill Skill @relation(fields: [skillId], references: [id])
+
+  @@unique([jobId, skillId])
+}
+
+enum AssignmentStatus {
+  OFFERED
+  ACCEPTED
+  SUBMITTED
+  APPROVED
+  PAID
+  DISPUTED
+}
+
+model Assignment {
+  id          String           @id @default(uuid())
+  jobId       String
+  workerId    String           @db.Uuid
+  status      AssignmentStatus @default(OFFERED)
+  offeredAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  acceptedAt  DateTime?
+  submittedAt DateTime?
+  approvedAt  DateTime?
+  paidAt      DateTime?
+
+  job    Job  @relation(fields: [jobId], references: [id])
+  worker User @relation("WorkerAssignments", fields: [workerId], references: [id])
+
+  evidence    Evidence[]
+  transaction Transaction?
+  ratings     Rating[]
+}
+
+model Evidence {
+  id             String     @id @default(uuid())
+  assignmentId   String
+  assignment     Assignment @relation(fields: [assignmentId], references: [id])
+  fileUrl        String
+  evidenceType   String // VIDEO, PHOTO, LINK, FILE 
+  requirementTag String // Links back to a specific item in the Job's evidenceTemplate
+  submittedAt    DateTime   @default(now())
+  validated      Boolean    @default(false)
+  validatorNotes String?
+}
+
+// --- 4. FINANCIALS & FEEDBACK
+
+enum TransactionStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  RELEASED
+}
+
+enum TransactionType {
+  DEPOSIT_TO_ESCROW
+  PAYOUT_TO_WORKER
+  REFUND_TO_EMPLOYER
+}
+
+model Transaction {
+  id           String            @id @default(uuid())
+  assignmentId String            @unique
+  assignment   Assignment        @relation(fields: [assignmentId], references: [id])
+  amount       Int // Stored in Cents/Base unit for Daraja KES
+  currency     String            @default("KES")
+  type         TransactionType
+  status       TransactionStatus @default(PENDING)
+  mpesaRef     String?           @unique // The critical Safaricom reference 
+  initiatedAt  DateTime          @default(now())
+  completedAt  DateTime?
+  updatedAt    DateTime          @updatedAt
+  retryCount   Int               @default(0)
+}
+
+model Rating {
+  id           String     @id @default(uuid())
+  assignmentId String
+  assignment   Assignment @relation(fields: [assignmentId], references: [id])
+  raterId      String     @db.Uuid
+  rateeId      String     @db.Uuid
+  score        Int // 1-5 
+  comment      String?
+  createdAt    DateTime   @default(now())
+
+  rater User @relation("Rater", fields: [raterId], references: [id])
+  ratee User @relation("Ratee", fields: [rateeId], references: [id])
+}
+
+// --- 5. TRAINING & REPORTING ---
+
+model TrainingModule {
+  id              String @id @default(uuid())
+  title           String
+  durationMinutes Int
+  contentUrl      String
+  passScore       Int    @default(80) // Standard 80% pass rate
+
+  completions ModuleCompletion[]
+}
+
+model ModuleCompletion {
+  id          String   @id @default(uuid())
+  moduleId    String
+  userId      String   @db.Uuid
+  score       Int
+  passed      Boolean
+  completedAt DateTime @default(now())
+
+  module TrainingModule @relation(fields: [moduleId], references: [id])
+  user   User           @relation(fields: [userId], references: [id])
+
+  @@unique([userId, moduleId])
+}
+
+model Report {
+  id          String   @id @default(uuid())
+  employerId  String   @db.Uuid
+  reportType  String // PERFORMANCE, ACTIVITY, PAYMENT
+  params      Json? // Filters used to generate report
+  generatedAt DateTime @default(now())
+  fileUrl     String
+
+  employer User @relation(fields: [employerId], references: [id])
+}
