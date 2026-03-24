@@ -47,6 +47,16 @@
     --radius-2xl: calc(var(--radius) * 1.8);
     --radius-3xl: calc(var(--radius) * 2.2);
     --radius-4xl: calc(var(--radius) * 2.6);
+
+    /* WeraLink Custom Branding */
+    --color-primary-wera: #EF626C;
+    --color-primary-dark: #d64550;
+    --color-accent-dark: #211112;
+    --color-accent-text: #893D44;
+    --color-text-main: #312F2F;
+    --color-card-bg-wera: #F6E8EA;
+    --color-background-light: #f8f6f6;
+    --color-background-dark-wera: #22181C;
 }
 
 :root {

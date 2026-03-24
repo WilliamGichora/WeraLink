@@ -8,7 +8,9 @@
     "dev": "nodemon app.js"
   },
   "dependencies": {
+    "@prisma/adapter-pg": "^7.5.0",
     "@prisma/client": "^7.5.0",
+    "@supabase/supabase-js": "^2.100.0",
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
@@ -17,7 +19,8 @@
     "express": "^5.2.1",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
-    "morgan": "^1.9.1"
+    "morgan": "^1.9.1",
+    "pg": "^8.20.0"
   },
   "devDependencies": {
     "dotenv-cli": "^11.0.0",

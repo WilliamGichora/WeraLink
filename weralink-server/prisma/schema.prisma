@@ -1,10 +1,8 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
-  provider = "prisma-client"
+  provider = "prisma-client-js"
   output   = "../generated/prisma"
 }
 
@@ -54,7 +52,7 @@ model User {
 model Profile {
   id                 String   @id @default(uuid())
   userId             String   @unique @db.Uuid
-  user               User     @relation(fields: [userId], references: [id])
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   bio                String?
   location           String?
   availabilityStatus Boolean  @default(true)
@@ -81,8 +79,8 @@ model UserSkill {
   verified   Boolean   @default(false)
   verifiedAt DateTime?
 
-  user  User  @relation(fields: [userId], references: [id])
-  skill Skill @relation(fields: [skillId], references: [id])
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skill Skill @relation(fields: [skillId], references: [id], onDelete: Cascade)
 
   @@unique([userId, skillId])
 }
@@ -102,8 +100,8 @@ model UserBadge {
   badgeId   String
   awardedAt DateTime @default(now())
 
-  user  User  @relation(fields: [userId], references: [id])
-  badge Badge @relation(fields: [badgeId], references: [id])
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge Badge @relation(fields: [badgeId], references: [id], onDelete: Cascade)
 
   @@unique([userId, badgeId])
 }
@@ -121,7 +119,7 @@ enum JobStatus {
 model Job {
   id          String    @id @default(uuid())
   employerId  String    @db.Uuid
-  employer    User      @relation("EmployerJobs", fields: [employerId], references: [id])
+  employer    User      @relation("EmployerJobs", fields: [employerId], references: [id], onDelete: Cascade)
   title       String
   description String
   payAmount   Decimal   @db.Decimal(10, 2)
@@ -146,8 +144,8 @@ model JobSkill {
   skillId       String
   requiredLevel Int    @default(1)
 
-  job   Job   @relation(fields: [jobId], references: [id])
-  skill Skill @relation(fields: [skillId], references: [id])
+  job   Job   @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  skill Skill @relation(fields: [skillId], references: [id], onDelete: Cascade)
 
   @@unique([jobId, skillId])
 }
@@ -173,8 +171,8 @@ model Assignment {
   approvedAt  DateTime?
   paidAt      DateTime?
 
-  job    Job  @relation(fields: [jobId], references: [id])
-  worker User @relation("WorkerAssignments", fields: [workerId], references: [id])
+  job    Job  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  worker User @relation("WorkerAssignments", fields: [workerId], references: [id], onDelete: Cascade)
 
   evidence    Evidence[]
   transaction Transaction?
@@ -184,7 +182,7 @@ model Assignment {
 model Evidence {
   id             String     @id @default(uuid())
   assignmentId   String
-  assignment     Assignment @relation(fields: [assignmentId], references: [id])
+  assignment     Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
   fileUrl        String
   evidenceType   String // VIDEO, PHOTO, LINK, FILE 
   requirementTag String // Links back to a specific item in the Job's evidenceTemplate
@@ -211,7 +209,7 @@ enum TransactionType {
 model Transaction {
   id           String            @id @default(uuid())
   assignmentId String            @unique
-  assignment   Assignment        @relation(fields: [assignmentId], references: [id])
+  assignment   Assignment        @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
   amount       Int // Stored in Cents/Base unit for Daraja KES
   currency     String            @default("KES")
   type         TransactionType
@@ -226,15 +224,15 @@ model Transaction {
 model Rating {
   id           String     @id @default(uuid())
   assignmentId String
-  assignment   Assignment @relation(fields: [assignmentId], references: [id])
+  assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
   raterId      String     @db.Uuid
   rateeId      String     @db.Uuid
   score        Int // 1-5 
   comment      String?
   createdAt    DateTime   @default(now())
 
-  rater User @relation("Rater", fields: [raterId], references: [id])
-  ratee User @relation("Ratee", fields: [rateeId], references: [id])
+  rater User @relation("Rater", fields: [raterId], references: [id], onDelete: Cascade)
+  ratee User @relation("Ratee", fields: [rateeId], references: [id], onDelete: Cascade)
 }
 
 // --- 5. TRAINING & REPORTING ---
@@ -257,8 +255,8 @@ model ModuleCompletion {
   passed      Boolean
   completedAt DateTime @default(now())
 
-  module TrainingModule @relation(fields: [moduleId], references: [id])
-  user   User           @relation(fields: [userId], references: [id])
+  module TrainingModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  user   User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, moduleId])
 }
@@ -271,5 +269,5 @@ model Report {
   generatedAt DateTime @default(now())
   fileUrl     String
 
-  employer User @relation(fields: [employerId], references: [id])
+  employer User @relation(fields: [employerId], references: [id], onDelete: Cascade)
 }

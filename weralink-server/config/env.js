@@ -10,6 +10,8 @@ export const {
     JWT_EXPIRES_IN,
     JWT_REFRESH_SECRET,
     JWT_REFRESH_EXPIRES_IN,
+    SUPABASE_URL,
+    SUPABASE_SECRET_KEY,
 } = process.env
 
 export const isDevelopment = NODE_ENV === 'development'

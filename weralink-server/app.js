@@ -5,19 +5,36 @@ import morgan from "morgan";
 import cookieParser from "cookie-parser";
 import { PORT } from "./config/env.js";
 
+import authRoutes from './routes/auth.routes.js';
+import profileRoutes from './routes/profile.routes.js';
+
 const app = express();
 
 app.use(helmet());
-app.use(cors());
+app.use(cors({
+    origin: process.env.CLIENT_URL || function(origin, callback) {
+        if (!origin || origin.startsWith('http://localhost:')) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true,
+}));
 app.use(morgan("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
+
+app.use('/api/auth', authRoutes);
+app.use('/api/profiles', profileRoutes);
+
 app.get("/", (req, res) => {
-    res.send("Hello World!");
+    res.send("WeraLink API is active!");
 });
 
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+const serverPort = PORT || 5000;
+app.listen(serverPort, () => {
+    console.log(`Server is running on port ${serverPort}`);
 });
