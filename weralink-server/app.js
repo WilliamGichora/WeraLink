@@ -7,6 +7,7 @@ import { PORT } from "./config/env.js";
 
 import authRoutes from './routes/auth.routes.js';
 import profileRoutes from './routes/profile.routes.js';
+import { errorHandler } from './middlewares/error.middleware.js';
 
 const app = express();
 
@@ -33,6 +34,9 @@ app.use('/api/profiles', profileRoutes);
 app.get("/", (req, res) => {
     res.send("WeraLink API is active!");
 });
+
+// Final fallback boundary: Centralized Error Handler
+app.use(errorHandler);
 
 const serverPort = PORT || 5000;
 app.listen(serverPort, () => {

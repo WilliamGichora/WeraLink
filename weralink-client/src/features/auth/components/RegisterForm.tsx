@@ -12,6 +12,7 @@ export function RegisterForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [step, setStep] = useState<'CREDENTIALS' | 'OTP'>('CREDENTIALS');
   const [authEmail, setAuthEmail] = useState("");
+  const [rememberMe, setRememberMe] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
   
@@ -36,7 +37,7 @@ export function RegisterForm() {
     setIsLoading(true);
     setErrorMsg("");
     try {
-      await verifyOTP(authEmail, data.otp, 'signup');
+      await verifyOTP(authEmail, data.otp, 'signup', rememberMe);
       navigate("/");
     } catch (err: any) {
       setErrorMsg(err.response?.data?.errors?.[0]?.message || "Invalid verification code.");
@@ -181,6 +182,19 @@ export function RegisterForm() {
              </label>
           </div>
           {errors.role && <p className="text-xs text-red-500 mt-1 pb-2">Please select your role.</p>}
+        </div>
+
+        <div className="flex items-center">
+            <input 
+              id="remember-me-reg" 
+              type="checkbox" 
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              className="h-4 w-4 text-primary-wera focus:ring-primary-wera border-gray-300 rounded cursor-pointer" 
+            />
+            <label htmlFor="remember-me-reg" className="ml-2 block text-sm text-gray-600 cursor-pointer">
+                Remember me across sessions
+            </label>
         </div>
 
         <Button type="submit" disabled={isLoading} className="w-full flex justify-center py-6 border border-transparent rounded-lg shadow-sm text-sm font-bold text-white bg-primary-wera hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-wera transition-all transform active:scale-[0.98] mt-2">

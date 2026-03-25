@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { LoginForm } from "@/features/auth/components/LoginForm";
 import { RegisterForm } from "@/features/auth/components/RegisterForm";
+import { ForgotPasswordForm } from "@/features/auth/components/ForgotPasswordForm";
 import { Link as LinkIcon } from "lucide-react";
 
 export default function AuthPage() {
-  const [activeTab, setActiveTab] = useState<"login" | "register">("login");
+  const [activeTab, setActiveTab] = useState<"login" | "register" | "forgot-password">("login");
 
   return (
     <div className="bg-card-bg-wera font-display text-text-main font-sans antialiased min-h-screen flex items-center justify-center p-4">
@@ -47,22 +48,26 @@ export default function AuthPage() {
 
         <div className="w-full md:w-1/2 bg-white p-8 md:p-12 flex flex-col overflow-y-auto">
            <div className="max-w-md mx-auto w-full">
-               <div className="flex border-b border-gray-100 mb-8">
-                   <button 
-                     className={`flex-1 pb-4 text-sm font-semibold text-center border-b-2 transition-all ${activeTab === 'login' ? 'border-primary-wera text-primary-wera' : 'border-transparent text-gray-400 hover:text-gray-600'}`}
-                     onClick={() => setActiveTab('login')}
-                   >
-                       Sign In
-                   </button>
-                   <button 
-                     className={`flex-1 pb-4 text-sm font-semibold text-center border-b-2 transition-all ${activeTab === 'register' ? 'border-primary-wera text-primary-wera' : 'border-transparent text-gray-400 hover:text-gray-600'}`}
-                     onClick={() => setActiveTab('register')}
-                   >
-                       Register
-                   </button>
-               </div>
+               {activeTab !== 'forgot-password' && (
+                 <div className="flex border-b border-gray-100 mb-8">
+                     <button 
+                       className={`flex-1 pb-4 text-sm font-semibold text-center border-b-2 transition-all ${activeTab === 'login' ? 'border-primary-wera text-primary-wera' : 'border-transparent text-gray-400 hover:text-gray-600'}`}
+                       onClick={() => setActiveTab('login')}
+                     >
+                         Sign In
+                     </button>
+                     <button 
+                       className={`flex-1 pb-4 text-sm font-semibold text-center border-b-2 transition-all ${activeTab === 'register' ? 'border-primary-wera text-primary-wera' : 'border-transparent text-gray-400 hover:text-gray-600'}`}
+                       onClick={() => setActiveTab('register')}
+                     >
+                         Register
+                     </button>
+                 </div>
+               )}
 
-               {activeTab === 'login' ? <LoginForm /> : <RegisterForm />}
+               {activeTab === 'login' && <LoginForm onForgotClick={() => setActiveTab('forgot-password')} />}
+               {activeTab === 'register' && <RegisterForm />}
+               {activeTab === 'forgot-password' && <ForgotPasswordForm onBackToLogin={() => setActiveTab('login')} />}
 
                <div className="mt-8 pt-6 border-t border-gray-50">
                     <p className="text-center text-xs text-gray-400">

@@ -1,31 +1,30 @@
 import prisma from '../config/prisma.js';
 import { supabase } from '../config/supabase.js';
+import { AppError } from '../utils/AppError.js';
+import { PERMISSIONS, ROLE_PERMISSIONS, ADMIN_IS_SUPERUSER } from '../config/roles.js';
 
 export const requireAuth = async (req, res, next) => {
     try {
-        const authHeader = req.headers.authorization;
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        const token = req.cookies.access_token || (req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.split(' ')[1] : null);
+
+        if (!token) {
             return res.status(401).json({
                 data: null,
                 meta: null,
-                errors: [{ code: "UNAUTHORIZED", message: "Missing or invalid authorization header" }]
+                errors: [{ code: "UNAUTHORIZED", message: "Missing or invalid authentication token" }]
             });
         }
-
-        const token = authHeader.split(' ')[1];
         
-        // Verify token with Supabase
         const { data: { user }, error } = await supabase.auth.getUser(token);
         
         if (error || !user) {
-            return res.status(401).json({
+             return res.status(401).json({
                 data: null,
                 meta: null,
                 errors: [{ code: "UNAUTHORIZED", message: "Invalid or expired token" }]
             });
         }
 
-        // Attach Supabase user ID to request
         req.user = { id: user.id };
         next();
     } catch (error) {
@@ -39,8 +38,7 @@ export const requireAuth = async (req, res, next) => {
 };
 
 /**
- * Middleware to restrict routes to specific roles
- * @param {string[]} allowedRoles - Array of allowed roles (e.g., ['WORKER', 'EMPLOYER', 'ADMIN'])
+ * @param {string[]} allowedRoles 
  */
 export const requireRole = (allowedRoles) => {
     return async (req, res, next) => {
@@ -53,14 +51,13 @@ export const requireRole = (allowedRoles) => {
                 });
             }
 
-            // Fetch user from database to verify role
             const user = await prisma.user.findUnique({
                 where: { id: req.user.id },
                 select: { role: true, status: true }
             });
 
             if (!user) {
-                return res.status(401).json({
+                 return res.status(401).json({
                     data: null,
                     meta: null,
                     errors: [{ code: "UNAUTHORIZED", message: "User record not found" }]
@@ -83,7 +80,6 @@ export const requireRole = (allowedRoles) => {
                 });
             }
 
-            // Optional: attach full DB user details to req
             req.dbUser = user;
             next();
         } catch (error) {
@@ -93,6 +89,63 @@ export const requireRole = (allowedRoles) => {
                 meta: null,
                 errors: [{ code: "INTERNAL_ERROR", message: "An error occurred during authorization" }]
             });
+        }
+    };
+};
+
+/**
+ * @param {string} requiredPermission 
+ */
+export const requirePermission = (requiredPermission) => {
+    return async (req, res, next) => {
+        try {
+            // 1. Initial Identity Verification
+            const token = req.cookies.access_token || (req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.split(' ')[1] : null);
+
+            if (!token) {
+                 return next(new AppError("Missing or invalid authentication token", 401, "UNAUTHORIZED"));
+            }
+            
+            const { data: { user }, error } = await supabase.auth.getUser(token);
+            
+            if (error || !user) {
+                 return next(new AppError("Invalid or expired token", 401, "UNAUTHORIZED"));
+            }
+
+            const dbUser = await prisma.user.findUnique({
+                where: { id: user.id },
+                select: { id: true, role: true, status: true, email: true }
+            });
+
+            if (!dbUser) {
+                 return next(new AppError("User record not found", 401, "UNAUTHORIZED"));
+            }
+
+            if (dbUser.status === 'SUSPENDED') {
+                 return next(new AppError("Your account has been suspended by an Administrator.", 403, "SUSPENDED"));
+            }
+            
+            if (dbUser.status === 'PENDING_OTP') {
+                 return next(new AppError("Please verify your account OTP to proceed.", 403, "UNVERIFIED"));
+            }
+
+            const userRole = dbUser.role;
+            const hasMasterOverride = ADMIN_IS_SUPERUSER && userRole === 'ADMIN';
+            
+            const rolePrivileges = ROLE_PERMISSIONS[userRole] || [];
+            const hasPermission = rolePrivileges.includes(requiredPermission);
+
+            if (!hasMasterOverride && !hasPermission) {
+                return next(new AppError(`Access denied. Missing required system privilege: ${requiredPermission}`, 403, "FORBIDDEN"));
+            }
+
+            // 5. Inject DB context into request
+            req.user = { id: dbUser.id, role: dbUser.role };
+            req.dbUser = dbUser;
+            next();
+        } catch (error) {
+            console.error("Permission Middleware Error:", error);
+            next(new AppError("An error occurred during secure authorization.", 500, "INTERNAL_ERROR"));
         }
     };
 };

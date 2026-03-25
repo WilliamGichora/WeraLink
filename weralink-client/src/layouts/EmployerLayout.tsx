@@ -1,7 +1,28 @@
-import { Outlet } from "react-router-dom";
-import { Bell, LinkIcon } from "lucide-react";
+import { Outlet, useNavigate } from "react-router-dom";
+import { Bell, LinkIcon, LogOut } from "lucide-react";
+import { useAuth } from "../features/auth/context/AuthContext";
+import { LogoutConfirmDialog } from "../features/auth/components/LogoutConfirmDialog";
+import { useState } from "react";
 
 export function EmployerLayout() {
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+  const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await logout();
+      setIsLogoutDialogOpen(false);
+      navigate("/");
+    } catch (error) {
+      console.error("Logout failed:", error);
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
+
   return (
     <div className="bg-background-light dark:bg-background-dark font-display text-text-main font-sans antialiased min-h-screen flex flex-col">
       <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-200 shadow-sm dark:bg-black dark:border-gray-800">
@@ -22,9 +43,12 @@ export function EmployerLayout() {
             </div>
             
             <div className="flex items-center gap-4">
-              <button className="text-gray-400 hover:text-primary-wera transition-colors relative">
+              <button className="text-gray-400 hover:text-primary-wera transition-colors relative" title="Notifications">
                 <Bell className="w-6 h-6" />
                 <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-primary-wera ring-2 ring-white"></span>
+              </button>
+              <button onClick={() => setIsLogoutDialogOpen(true)} className="text-gray-400 hover:text-red-500 transition-colors" title="Log out">
+                <LogOut className="w-6 h-6" />
               </button>
               <div className="h-8 w-8 rounded-full bg-primary-wera/20 overflow-hidden border border-primary-wera/20 cursor-pointer">
                 <div className="h-full w-full bg-gray-400 shadow-sm"></div>
@@ -35,6 +59,13 @@ export function EmployerLayout() {
       </nav>
 
       <Outlet />
+
+      <LogoutConfirmDialog 
+        isOpen={isLogoutDialogOpen} 
+        onClose={() => setIsLogoutDialogOpen(false)} 
+        onConfirm={handleLogout}
+        isLoading={isLoggingOut}
+      />
 
       <footer className="bg-white border-t border-gray-200 py-8 dark:bg-black dark:border-gray-800 mt-auto relative z-50">
         <div className="max-w-7xl mx-auto px-4 text-center">

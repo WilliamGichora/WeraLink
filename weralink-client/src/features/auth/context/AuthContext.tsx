@@ -15,10 +15,12 @@ interface AuthContextType {
     user: User | null;
     isAuthenticated: boolean;
     isLoading: boolean;
-    login: (email: string, password: string) => Promise<void>;
+    login: (email: string, password: string) => Promise<any>;
     register: (data: any) => Promise<void>;
-    verifyOTP: (email: string, token: string, type?: 'signup' | 'magiclink') => Promise<void>;
-    resendOTP: (email: string, type?: 'signup' | 'magiclink') => Promise<void>;
+    verifyOTP: (email: string, token: string, type?: 'signup' | 'magiclink' | 'recovery', rememberMe?: boolean) => Promise<void>;
+    resendOTP: (email: string, type?: 'signup' | 'magiclink' | 'recovery') => Promise<void>;
+    forgotPassword: (email: string) => Promise<void>;
+    updatePassword: (newPassword: string) => Promise<void>;
     logout: () => Promise<void>;
 }
 
@@ -44,22 +46,30 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }, []);
 
     const login = async (email: string, password: string) => {
-        await authService.login(email, password);
+        return await authService.login(email, password);
     };
 
     const register = async (data: any) => {
         await authService.register(data);
     };
 
-    const verifyOTP = async (email: string, token: string, type: 'signup' | 'magiclink' = 'signup') => {
-        const userData = await authService.verifyOTP(email, token, type);
+    const verifyOTP = async (email: string, token: string, type: 'signup' | 'magiclink' | 'recovery' = 'signup', rememberMe: boolean = true) => {
+        const userData = await authService.verifyOTP(email, token, type, rememberMe);
         if (userData) {
             setUser(userData);
         }
     };
 
-    const resendOTP = async (email: string, type: 'signup' | 'magiclink' = 'signup') => {
+    const resendOTP = async (email: string, type: 'signup' | 'magiclink' | 'recovery' = 'signup') => {
         await authService.resendOTP(email, type);
+    };
+
+    const forgotPassword = async (email: string) => {
+        await authService.forgotPassword(email);
+    };
+
+    const updatePassword = async (newPassword: string) => {
+        await authService.updatePassword(newPassword);
     };
 
     const logout = async () => {
@@ -79,6 +89,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             register,
             verifyOTP,
             resendOTP,
+            forgotPassword,
+            updatePassword,
             logout
         }}>
             {children}

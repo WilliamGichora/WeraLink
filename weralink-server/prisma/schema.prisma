@@ -39,7 +39,7 @@ model User {
   // Relations
   skills      UserSkill[]
   badges      UserBadge[]
-  postedJobs  Job[]              @relation("EmployerJobs")
+  postedGigs  Gig[]              @relation("EmployerGigs")
   assignments Assignment[]       @relation("WorkerAssignments")
   completions ModuleCompletion[]
   reports     Report[]
@@ -68,7 +68,7 @@ model Skill {
   category String
 
   users UserSkill[]
-  jobs  JobSkill[]
+  gigs  GigSkill[]
 }
 
 model UserSkill {
@@ -108,7 +108,7 @@ model UserBadge {
 
 // --- 3. GIG & EXECUTION WORKFLOW --- [cite: 332, 472]
 
-enum JobStatus {
+enum GigStatus {
   OPEN
   ASSIGNED
   COMPLETED
@@ -116,16 +116,16 @@ enum JobStatus {
   CANCELLED
 }
 
-model Job {
+model Gig {
   id          String    @id @default(uuid())
   employerId  String    @db.Uuid
-  employer    User      @relation("EmployerJobs", fields: [employerId], references: [id], onDelete: Cascade)
+  employer    User      @relation("EmployerGigs", fields: [employerId], references: [id], onDelete: Cascade)
   title       String
   description String
   payAmount   Decimal   @db.Decimal(10, 2)
   currency    String    @default("KES")
   location    String
-  status      JobStatus @default(OPEN)
+  status      GigStatus @default(OPEN)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   expiresAt   DateTime?
@@ -134,20 +134,20 @@ model Job {
   // Format: [{"type": "VIDEO", "min": 1}, {"type": "LINK", "min": 1}]
   evidenceTemplate Json
 
-  skills      JobSkill[]
+  skills      GigSkill[]
   assignments Assignment[]
 }
 
-model JobSkill {
+model GigSkill {
   id            String @id @default(uuid())
-  jobId         String
+  gigId         String
   skillId       String
   requiredLevel Int    @default(1)
 
-  job   Job   @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  gig   Gig   @relation(fields: [gigId], references: [id], onDelete: Cascade)
   skill Skill @relation(fields: [skillId], references: [id], onDelete: Cascade)
 
-  @@unique([jobId, skillId])
+  @@unique([gigId, skillId])
 }
 
 enum AssignmentStatus {
@@ -161,7 +161,7 @@ enum AssignmentStatus {
 
 model Assignment {
   id          String           @id @default(uuid())
-  jobId       String
+  gigId       String
   workerId    String           @db.Uuid
   status      AssignmentStatus @default(OFFERED)
   offeredAt   DateTime         @default(now())
@@ -171,7 +171,7 @@ model Assignment {
   approvedAt  DateTime?
   paidAt      DateTime?
 
-  job    Job  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  gig    Gig  @relation(fields: [gigId], references: [id], onDelete: Cascade)
   worker User @relation("WorkerAssignments", fields: [workerId], references: [id], onDelete: Cascade)
 
   evidence    Evidence[]
@@ -185,7 +185,7 @@ model Evidence {
   assignment     Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
   fileUrl        String
   evidenceType   String // VIDEO, PHOTO, LINK, FILE 
-  requirementTag String // Links back to a specific item in the Job's evidenceTemplate
+  requirementTag String // Links back to a specific item in the Gig's evidenceTemplate
   submittedAt    DateTime   @default(now())
   validated      Boolean    @default(false)
   validatorNotes String?

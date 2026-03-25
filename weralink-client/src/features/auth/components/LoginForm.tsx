@@ -7,12 +7,15 @@ import { Mail, Lock, KeyRound } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 
-export function LoginForm() {
+export function LoginForm({ onForgotClick }: { onForgotClick?: () => void }) {
   const { register, handleSubmit, formState: { errors } } = useForm();
   const [isLoading, setIsLoading] = useState(false);
   const [step, setStep] = useState<'CREDENTIALS' | 'OTP'>('CREDENTIALS');
   const [authEmail, setAuthEmail] = useState("");
+  const [rememberMe, setRememberMe] = useState(true);
+  const [verificationType, setVerificationType] = useState<'magiclink' | 'signup'>('magiclink');
   const [errorMsg, setErrorMsg] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
   
   const { login, verifyOTP, resendOTP } = useAuth();
   const navigate = useNavigate();
@@ -21,7 +24,8 @@ export function LoginForm() {
     setIsLoading(true);
     setErrorMsg("");
     try {
-      await login(data.email, data.password);
+      const resp = await login(data.email, data.password);
+      setVerificationType(resp?.verificationType || 'magiclink');
       setAuthEmail(data.email);
       setStep('OTP');
     } catch (err: any) {
@@ -35,7 +39,7 @@ export function LoginForm() {
     setIsLoading(true);
     setErrorMsg("");
     try {
-      await verifyOTP(authEmail, data.otp, 'magiclink');
+      await verifyOTP(authEmail, data.otp, verificationType, rememberMe);
       navigate("/");
     } catch (err: any) {
       setErrorMsg(err.response?.data?.errors?.[0]?.message || "Invalid verification code.");
@@ -48,8 +52,8 @@ export function LoginForm() {
     setIsLoading(true);
     setErrorMsg("");
     try {
-      await resendOTP(authEmail, 'magiclink');
-      setErrorMsg("Verification code has been successfully resent!"); // Temporarily using error field for success msg
+      await resendOTP(authEmail, verificationType);
+      setSuccessMsg("Verification code has been successfully resent!");
     } catch (err: any) {
       setErrorMsg(err.response?.data?.errors?.[0]?.message || "Failed to resend code.");
     } finally {
@@ -96,7 +100,9 @@ export function LoginForm() {
             <Label htmlFor="password" className="block text-xs font-semibold text-text-main uppercase tracking-wider">
               Password
             </Label>
-            <a href="#" className="text-xs text-primary-wera hover:text-primary-dark font-medium">Forgot Password?</a>
+            <button type="button" onClick={onForgotClick} className="text-xs text-primary-wera hover:text-primary-dark font-medium bg-transparent border-none p-0 cursor-pointer">
+              Forgot Password?
+            </button>
           </div>
           <div className="relative">
              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -112,7 +118,13 @@ export function LoginForm() {
         </div>
 
         <div className="flex items-center">
-            <input id="remember-me" type="checkbox" className="h-4 w-4 text-primary-wera focus:ring-primary-wera border-gray-300 rounded cursor-pointer" />
+            <input 
+              id="remember-me" 
+              type="checkbox" 
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              className="h-4 w-4 text-primary-wera focus:ring-primary-wera border-gray-300 rounded cursor-pointer" 
+            />
             <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-600 cursor-pointer">
                 Remember me
             </label>
@@ -139,6 +151,7 @@ export function LoginForm() {
             />
           </div>
           {errors.otp && <p className="text-xs text-red-500 mt-1">{errors.otp.message?.toString()}</p>}
+          {successMsg && <p className="text-xs text-green-500 mt-1">{successMsg}</p>}
         </div>
         <Button type="submit" disabled={isLoading} className="w-full flex justify-center py-6 border border-transparent rounded-lg shadow-sm text-sm font-bold text-white bg-primary-wera hover:bg-primary-dark transition-all transform active:scale-[0.98]">
             {isLoading ? "Verifying..." : "Verify & Login"}
