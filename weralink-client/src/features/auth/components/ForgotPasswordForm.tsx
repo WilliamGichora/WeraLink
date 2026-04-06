@@ -39,7 +39,6 @@ export function ForgotPasswordForm({ onBackToLogin }: { onBackToLogin: () => voi
     setErrorMsg("");
     setSuccessMsg("");
     try {
-      // recovery establishes a temporary authorized session without persistent cookies
       await verifyOTP(authEmail, data.otp, 'recovery', false);
       setStep('NEW_PASSWORD');
       setSuccessMsg("Code verified! Please enter your new password.");
@@ -60,7 +59,6 @@ export function ForgotPasswordForm({ onBackToLogin }: { onBackToLogin: () => voi
     setSuccessMsg("");
     try {
       await updatePassword(data.password);
-      // Hard redirect to dashboard, clearing the form
       navigate("/");
     } catch (err: any) {
       setErrorMsg(err.response?.data?.errors?.[0]?.message || "Failed to securely update password.");

@@ -2,8 +2,9 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider = "prisma-client-js"
-  output   = "../generated/prisma"
+  provider        = "prisma-client-js"
+  previewFeatures = ["relationJoins"]
+  output          = "../generated/prisma"
 }
 
 datasource db {
@@ -56,7 +57,7 @@ model Profile {
   bio                String?
   location           String?
   availabilityStatus Boolean  @default(true)
-  portfolioUrls      String[]
+  portfolio          Json?    // [{ id, title, description, url, type }]
   verified           Boolean  @default(false)
 }
 

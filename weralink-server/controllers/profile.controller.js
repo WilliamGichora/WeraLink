@@ -11,6 +11,7 @@ export const getMyProfile = async (req, res) => {
 
         const profile = await prisma.profile.findUnique({
             where: { userId },
+            relationLoadStrategy: 'join',
             include: {
                 user: {
                     select: {
@@ -18,7 +19,14 @@ export const getMyProfile = async (req, res) => {
                         email: true,
                         phone: true,
                         role: true,
-                        status: true
+                        status: true,
+                        skills: { include: { skill: true } },
+                        badges: { include: { badge: true } },
+                        ratingsRecv: { 
+                            select: { score: true, comment: true, createdAt: true, rater: { select: { name: true } } },
+                            orderBy: { createdAt: 'desc' },
+                            take: 5
+                        }
                     }
                 }
             }
@@ -39,7 +47,7 @@ export const getMyProfile = async (req, res) => {
 export const updateMyProfile = async (req, res) => {
     try {
         const userId = req.user.id;
-        const { bio, location, availabilityStatus, portfolioUrls } = req.body;
+        const { bio, location, availabilityStatus, portfolio } = req.body;
 
         const updatedProfile = await prisma.profile.update({
             where: { userId },
@@ -47,7 +55,7 @@ export const updateMyProfile = async (req, res) => {
                 bio: bio !== undefined ? bio : undefined,
                 location: location !== undefined ? location : undefined,
                 availabilityStatus: availabilityStatus !== undefined ? availabilityStatus : undefined,
-                portfolioUrls: portfolioUrls !== undefined ? portfolioUrls : undefined,
+                portfolio: portfolio !== undefined ? portfolio : undefined,
             },
             include: {
                 user: {
@@ -71,5 +79,43 @@ export const updateMyProfile = async (req, res) => {
         }
         
         return respond(res, 500, null, null, [{ code: "INTERNAL_ERROR", message: "Failed to update profile." }]);
+    }
+};
+
+export const addMySkill = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { skillId, level } = req.body;
+        
+        if (!skillId) {
+            return respond(res, 400, null, null, [{ code: "VALIDATION_ERROR", message: "skillId is required." }]);
+        }
+
+        const userSkill = await prisma.userSkill.create({
+            data: { userId, skillId, level: level || 1 },
+            include: { skill: true }
+        });
+
+        return respond(res, 201, { userSkill });
+    } catch (error) {
+        console.error("Add Skill Error:", error);
+        if (error.code === 'P2002') return respond(res, 409, null, null, [{ code: "CONFLICT", message: "Skill already added." }]);
+        return respond(res, 500, null, null, [{ code: "INTERNAL_ERROR", message: "Failed to add skill." }]);
+    }
+};
+
+export const removeMySkill = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { skillId } = req.params;
+
+        await prisma.userSkill.delete({
+            where: { userId_skillId: { userId, skillId } }
+        });
+
+        return respond(res, 200, { success: true });
+    } catch (error) {
+        console.error("Remove Skill Error:", error);
+        return respond(res, 500, null, null, [{ code: "INTERNAL_ERROR", message: "Failed to remove skill." }]);
     }
 };

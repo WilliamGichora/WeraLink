@@ -30,7 +30,6 @@ export const register = async (req, res) => {
 
         if (existingUser) {
             if (existingUser.status === 'PENDING_OTP') {
-                // Auto-Recovery flow: Bypass 409, trigger resend, and signal UI to jump to OTP
                 const { error: resendError } = await supabase.auth.resend({ type: 'signup', email });
                 if (resendError) {
                     return respond(res, 400, null, null, [{ code: "AUTH_ERROR", message: resendError.message }]);
@@ -40,11 +39,10 @@ export const register = async (req, res) => {
             return respond(res, 409, null, null, [{ code: "CONFLICT", message: "Email or phone already exists in the system." }]);
         }
 
-        // 1. Create User in Supabase using Admin API to bypass public restrictions and queue OTP
         const { data: authData, error: authError } = await supabase.auth.admin.createUser({
             email,
             password,
-            email_confirm: false, // OTP is handled separately or via this if auto-confirm is off
+            email_confirm: false, 
             user_metadata: { name, phone, role }
         });
 
@@ -56,7 +54,6 @@ export const register = async (req, res) => {
         const supabaseUserId = authData.user.id;
 
         try {
-            // 2. Create User in Prisma matching Supabase UUID
             await prisma.user.create({
                 data: {
                     id: supabaseUserId,
@@ -68,7 +65,6 @@ export const register = async (req, res) => {
                 }
             });
 
-            // 3. Create basic profile placeholder
             await prisma.profile.create({
                 data: {
                     userId: supabaseUserId
@@ -353,7 +349,6 @@ export const updatePassword = async (req, res, next) => {
              return respond(res, 400, null, null, [{ code: "VALIDATION_ERROR", message: "A strong password of at least 8 characters is required." }]);
         }
 
-        // We use admin API to update by ID to circumvent client-side active session requirements which might desync
         const { error } = await supabase.auth.admin.updateUserById(req.user.id, { 
             password: newPassword 
         });

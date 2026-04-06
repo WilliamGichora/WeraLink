@@ -57,6 +57,13 @@
     --color-card-bg-wera: #F6E8EA;
     --color-background-light: #f8f6f6;
     --color-background-dark-wera: #22181C;
+
+    /* WeraLink Stitch Profile UI Tokens */
+    --color-stitch-primary: #EF626C;
+    --color-stitch-bg-dark: #211112;
+    --color-stitch-soft-pink: #F6E8EA;
+    --color-stitch-card-pink: rgba(239, 98, 108, 0.05);
+    --color-stitch-bg-slate: #1e293b; /* Fallback for dark mode mobile background */
 }
 
 :root {

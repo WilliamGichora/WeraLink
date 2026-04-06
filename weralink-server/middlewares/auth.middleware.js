@@ -99,7 +99,6 @@ export const requireRole = (allowedRoles) => {
 export const requirePermission = (requiredPermission) => {
     return async (req, res, next) => {
         try {
-            // 1. Initial Identity Verification
             const token = req.cookies.access_token || (req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.split(' ')[1] : null);
 
             if (!token) {
@@ -139,7 +138,6 @@ export const requirePermission = (requiredPermission) => {
                 return next(new AppError(`Access denied. Missing required system privilege: ${requiredPermission}`, 403, "FORBIDDEN"));
             }
 
-            // 5. Inject DB context into request
             req.user = { id: dbUser.id, role: dbUser.role };
             req.dbUser = dbUser;
             next();

@@ -7,13 +7,13 @@ export const ROLES = {
 };
 
 export const PERMISSIONS = {
-  // Gigs/Gigs
+  // Gigs
   GIG_CREATE: 'GIG_CREATE',
   GIG_EDIT_OWN: 'GIG_EDIT_OWN',
   GIG_DELETE_OWN: 'GIG_DELETE_OWN',
   GIG_VIEW_ALL: 'GIG_VIEW_ALL',
   
-  // Proposals & Assignments
+  //Assignments
   ASSIGNMENT_APPLY: 'ASSIGNMENT_APPLY',
   ASSIGNMENT_VIEW_OWN: 'ASSIGNMENT_VIEW_OWN',
   EVIDENCE_SUBMIT: 'EVIDENCE_SUBMIT',
