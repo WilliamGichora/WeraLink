@@ -1,8 +1,5 @@
 import prisma from '../config/prisma.js';
-
-const respond = (res, status, data, meta = null, errors = null) => {
-    return res.status(status).json({ data, meta, errors });
-};
+import { respond } from '../utils/respond.js';
 
 
 export const getMyProfile = async (req, res) => {

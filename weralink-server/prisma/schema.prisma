@@ -117,22 +117,39 @@ enum GigStatus {
   CANCELLED
 }
 
-model Gig {
-  id          String    @id @default(uuid())
-  employerId  String    @db.Uuid
-  employer    User      @relation("EmployerGigs", fields: [employerId], references: [id], onDelete: Cascade)
-  title       String
-  description String
-  payAmount   Decimal   @db.Decimal(10, 2)
-  currency    String    @default("KES")
-  location    String
-  status      GigStatus @default(OPEN)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  expiresAt   DateTime?
+enum GigCategory {
+  TRANSLATION
+  MARKETING
+  DATA_ENTRY
+  BUG_HUNTING
+  AI_LABELING
+  RESEARCH
+}
 
-  // Dynamic Evidence Requirement 
-  // Format: [{"type": "VIDEO", "min": 1}, {"type": "LINK", "min": 1}]
+enum WorkType {
+  REMOTE
+  ON_SITE
+  HYBRID
+}
+
+model Gig {
+  id               String      @id @default(uuid())
+  employerId       String      @db.Uuid
+  employer         User        @relation("EmployerGigs", fields: [employerId], references: [id], onDelete: Cascade)
+  title            String
+  description      String
+  category         GigCategory
+  workType         WorkType    @default(REMOTE)
+  payAmount        Decimal     @db.Decimal(10, 2)
+  currency         String      @default("KES")
+  location         String
+  status           GigStatus   @default(OPEN)
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  expiresAt        DateTime?
+
+  // Dynamic Evidence Requirement
+  // Format: [{"tag": "translated_doc", "label": "Translated Document", "type": "FILE", "accept": [".pdf"], "maxSizeMB": 10, "min": 1, "required": true}]
   evidenceTemplate Json
 
   skills      GigSkill[]

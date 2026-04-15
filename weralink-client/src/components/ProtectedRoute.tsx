@@ -21,7 +21,6 @@ export function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
     }
 
     if (allowedRoles && !allowedRoles.includes(user.role)) {
-        // Redirect to their respective dashboard
         if (user.role === 'WORKER') return <Navigate to="/worker" replace />;
         if (user.role === 'EMPLOYER') return <Navigate to="/employer" replace />;
         return <Navigate to="/auth" replace />;
