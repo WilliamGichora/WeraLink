@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import type { CreateGigInput, GigCategory } from '../schemas/gig.schema';
 
@@ -57,12 +57,24 @@ export const gigHooks = {
   },
 
   useGetMarketplaceGigs: (filters: any) => {
-    return useQuery({
+    return useInfiniteQuery({
       queryKey: ['gigs', 'marketplace', filters],
-      queryFn: async () => {
-        const { data } = await api.get<{ success: boolean; data: { gigs: any[] } }>('/gigs', { params: filters });
-        return data.data.gigs;
+      queryFn: async ({ pageParam = 1 }) => {
+        const { data } = await api.get<{ success: boolean; data: { gigs: any[] }, meta: { totalPages: number, page: number } }>('/gigs', { 
+            params: { ...filters, page: pageParam, limit: 10 } 
+        });
+        return {
+            gigs: data.data.gigs,
+            meta: data.meta,
+        };
       },
+      getNextPageParam: (lastPage) => {
+        if (lastPage.meta.page < lastPage.meta.totalPages) {
+            return lastPage.meta.page + 1;
+        }
+        return undefined;
+      },
+      initialPageParam: 1,
     });
   },
 
@@ -101,6 +113,36 @@ export const gigHooks = {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: ['gigs'] });
       },
+    });
+  },
+
+  // ─── Matching Algorithm Hooks ────────────────────────────────────────────
+
+  /** Worker: Get recommended gigs based on the matching algorithm */
+  useGetRecommendedGigs: (limit: number = 20) => {
+    return useQuery({
+      queryKey: ['matches', 'recommended-gigs', limit],
+      queryFn: async () => {
+        const { data } = await api.get<{ success: boolean; data: any }>('/matches/gigs', {
+          params: { limit },
+        });
+        return data.data;
+      },
+    });
+  },
+
+  /** Employer: Get recommended workers for a specific gig */
+  useGetMatchesForGig: (gigId: string | undefined, limit: number = 20) => {
+    return useQuery({
+      queryKey: ['matches', 'workers-for-gig', gigId, limit],
+      queryFn: async () => {
+        if (!gigId) return null;
+        const { data } = await api.get<{ success: boolean; data: any }>(`/gigs/${gigId}/matches`, {
+          params: { limit },
+        });
+        return data.data;
+      },
+      enabled: !!gigId,
     });
   },
 };

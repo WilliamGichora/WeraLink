@@ -6,13 +6,18 @@ export const getMyProfile = async (): Promise<ProfileData> => {
     return data.data.profile;
 };
 
-export const updateMyProfile = async (updates: Partial<Omit<ProfileData, 'user' | 'verified'>>): Promise<ProfileData> => {
+type UpdateProfilePayload = Partial<Omit<ProfileData, 'user' | 'verified'>> & {
+    name?: string;
+    phone?: string;
+};
+
+export const updateMyProfile = async (updates: UpdateProfilePayload): Promise<ProfileData> => {
     const { data } = await api.patch('/profiles/me', updates);
     return data.data.profile;
 };
 
-export const addProfileSkill = async (skillId: string, level: number = 1) => {
-    const { data } = await api.post('/profiles/me/skills', { skillId, level });
+export const addProfileSkill = async (skills: {skillId: string, level: number}[]) => {
+    const { data } = await api.post('/profiles/me/skills', { skills });
     return data.data;
 };
 

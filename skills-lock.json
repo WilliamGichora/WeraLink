@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "skills": {
+    "conversation-memory": {
+      "source": "sickn33/antigravity-awesome-skills",
+      "sourceType": "github",
+      "computedHash": "fc59428b02fdd35328d857e0726c8d54efebe2d1c870b733be23d3f61eb0f744"
+    },
+    "frontend-design": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "computedHash": "516bd2154eb843a8240e43d5b285229129853114ad7075a5e141e1c08e408c84"
+    }
+  }
+}

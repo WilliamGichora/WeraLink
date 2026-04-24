@@ -9,6 +9,7 @@ import {
     ArrowLeft, AlertCircle, Building2, UserCircle, Star, 
     ArrowRight
 } from 'lucide-react';
+import { RecommendedWorkersPanel } from './RecommendedWorkersPanel';
 
 // STUB function. Later, map this to worker's actual skills context vs gig's skills.
 const calculateMatchScore = (gigSkillIds: string[], workerSkills: string[] = ['s1', 's4', 's6']) => {
@@ -105,7 +106,7 @@ export const GigDetailView: React.FC<GigDetailViewProps> = ({ viewerRole = 'work
                 </div>
             </div>
 
-            <div className="flex flex-col lg:flex-row gap-8 max-w-7xl mx-auto px-4 md:px-8 relative z-20 -mt-20">
+            <div className="flex flex-col lg:flex-row gap-8 max-w-7xl md:mx-auto px-4 md:px-8 relative z-20 -mt-20">
                 {/* Main Content Column */}
                 <div className="w-full lg:w-2/3 space-y-6">
                     {/* Description */}
@@ -248,6 +249,11 @@ export const GigDetailView: React.FC<GigDetailViewProps> = ({ viewerRole = 'work
                             <p className="text-xs text-blue-700 mt-1">Always verify the employer's identity and stay in public areas. Report any suspicious activity immediately.</p>
                         </div>
                     </div>
+
+                    {/* Recommended Workers — Employer view only, OPEN gigs */}
+                    {viewerRole === 'employer' && gig.status === 'OPEN' && (
+                        <RecommendedWorkersPanel gigId={gig.id} gigStatus={gig.status} />
+                    )}
                 </div>
             </div>
 

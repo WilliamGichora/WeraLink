@@ -22,7 +22,7 @@ export const useUpdateProfile = () => {
 export const useAddSkill = () => {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: ({ skillId, level }: { skillId: string; level: number }) => addProfileSkill(skillId, level),
+        mutationFn: (skills: { skillId: string; level: number }[]) => addProfileSkill(skills),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['my-profile'] });
         },

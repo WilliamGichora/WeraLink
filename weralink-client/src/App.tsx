@@ -4,6 +4,7 @@ import WorkerDashboard from "./pages/worker/Dashboard";
 import WorkerProfile from "./pages/worker/WorkerProfile";
 import MarketplacePage from "./pages/worker/Marketplace";
 import GigDetailPage from "./pages/worker/GigDetail";
+import RecommendedGigsPage from "./pages/worker/RecommendedGigs";
 import EmployerDashboard from "./pages/employer/Dashboard";
 import CreateGigPage from "./pages/employer/CreateGig";
 import ManageGigsPage from "./pages/employer/ManageGigs";
@@ -33,6 +34,7 @@ function App() {
             <Route path="/worker" element={<WorkerLayout />}>
               <Route index element={<WorkerDashboard />} />
               <Route path="gigs" element={<MarketplacePage />} />
+              <Route path="gigs/recommended" element={<RecommendedGigsPage />} />
               <Route path="gigs/:id" element={<GigDetailPage />} />
               <Route path="profile" element={<WorkerProfile />} />
             </Route>

@@ -44,7 +44,7 @@ export const getMyProfile = async (req, res) => {
 export const updateMyProfile = async (req, res) => {
     try {
         const userId = req.user.id;
-        const { bio, location, availabilityStatus, portfolio } = req.body;
+        const { bio, location, availabilityStatus, portfolio, name, phone } = req.body;
 
         const updatedProfile = await prisma.profile.update({
             where: { userId },
@@ -53,6 +53,12 @@ export const updateMyProfile = async (req, res) => {
                 location: location !== undefined ? location : undefined,
                 availabilityStatus: availabilityStatus !== undefined ? availabilityStatus : undefined,
                 portfolio: portfolio !== undefined ? portfolio : undefined,
+                user: (name !== undefined || phone !== undefined) ? {
+                    update: {
+                        ...(name !== undefined && { name }),
+                        ...(phone !== undefined && { phone })
+                    }
+                } : undefined
             },
             include: {
                 user: {
@@ -82,22 +88,27 @@ export const updateMyProfile = async (req, res) => {
 export const addMySkill = async (req, res) => {
     try {
         const userId = req.user.id;
-        const { skillId, level } = req.body;
+        const { skillId, level, skills } = req.body;
         
-        if (!skillId) {
-            return respond(res, 400, null, null, [{ code: "VALIDATION_ERROR", message: "skillId is required." }]);
+        let skillsToAdd = [];
+        if (skills && Array.isArray(skills)) {
+            skillsToAdd = skills.map(s => ({ userId, skillId: s.skillId, level: s.level || 1 }));
+        } else if (skillId) {
+            skillsToAdd = [{ userId, skillId, level: level || 1 }];
+        } else {
+            return respond(res, 400, null, null, [{ code: "VALIDATION_ERROR", message: "skillId or skills array is required." }]);
         }
 
-        const userSkill = await prisma.userSkill.create({
-            data: { userId, skillId, level: level || 1 },
-            include: { skill: true }
+        const result = await prisma.userSkill.createMany({
+            data: skillsToAdd,
+            skipDuplicates: true
         });
 
-        return respond(res, 201, { userSkill });
+        return respond(res, 201, { addedCount: result.count });
     } catch (error) {
         console.error("Add Skill Error:", error);
         if (error.code === 'P2002') return respond(res, 409, null, null, [{ code: "CONFLICT", message: "Skill already added." }]);
-        return respond(res, 500, null, null, [{ code: "INTERNAL_ERROR", message: "Failed to add skill." }]);
+        return respond(res, 500, null, null, [{ code: "INTERNAL_ERROR", message: "Failed to add skills." }]);
     }
 };
 

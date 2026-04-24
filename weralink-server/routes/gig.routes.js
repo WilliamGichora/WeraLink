@@ -9,6 +9,7 @@ import {
     updateGig,
     deleteGig,
 } from '../controllers/gig.controller.js';
+import { getMatchesForGig } from '../controllers/matching.controller.js';
 
 const router = Router();
 
@@ -23,5 +24,8 @@ router.post('/', requireAuth, requirePermission(PERMISSIONS.GIG_CREATE), createG
 router.put('/:id', requireAuth, requirePermission(PERMISSIONS.GIG_EDIT_OWN), updateGig);
 
 router.delete('/:id', requireAuth, requirePermission(PERMISSIONS.GIG_DELETE_OWN), deleteGig);
+
+// Direction A: Employer → Find Recommended Workers for a Gig
+router.get('/:gigId/matches', requireAuth, requirePermission(PERMISSIONS.MATCH_VIEW), getMatchesForGig);
 
 export default router;

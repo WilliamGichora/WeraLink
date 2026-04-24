@@ -4,9 +4,10 @@ import { Button } from '@/components/ui/button';
 
 interface ProfileHeaderProps {
     profile: ProfileData;
+    onEditClick: () => void;
 }
 
-export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ profile }) => {
+export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ profile, onEditClick }) => {
     const { user } = profile;
 
     return (
@@ -65,7 +66,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ profile }) => {
 
                 {/* Worker Owner Management Actions */}
                 <div className="flex gap-4 mt-6 md:mt-0 w-full md:w-auto px-4 md:px-0">
-                    <Button className="flex-1 md:flex-none bg-stitch-primary text-white px-8 py-6 rounded-xl font-bold shadow-lg hover:brightness-110 active:scale-95 transition-all text-base gap-2">
+                    <Button onClick={onEditClick} className="flex-1 md:flex-none bg-stitch-primary text-white px-8 py-6 rounded-xl font-bold shadow-lg hover:brightness-110 active:scale-95 transition-all text-base gap-2">
                         <Pencil className="w-4 h-4" />
                         Edit Profile
                     </Button>

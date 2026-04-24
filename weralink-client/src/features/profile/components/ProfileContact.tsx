@@ -1,8 +1,11 @@
 import type { ProfileData } from '@/features/profile/types';
 import { Mail, Phone, Share2, ShieldQuestion } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useUpdateProfile } from '@/features/profile/hooks/useProfile';
+import { toast } from 'sonner';
 
-export const ProfileContact = ({ profile }: { profile: ProfileData }) => {
+export const ProfileContact = ({ profile, onEditClick }: { profile: ProfileData; onEditClick: () => void }) => {
+    const { mutate: updateProfile, isPending: isUpdating } = useUpdateProfile();
     return (
         <aside className="space-y-6 lg:space-y-8">
             {/* Performance Stats Card */}
@@ -59,11 +62,19 @@ export const ProfileContact = ({ profile }: { profile: ProfileData }) => {
                 <div className="mt-8 pt-8 border-t border-stitch-primary/10">
                     <div className="flex justify-between items-center mb-4">
                         <span className="text-slate-500 font-medium">Availability Status</span>
-                        {profile.availabilityStatus ? (
-                            <span className="px-2 py-1 bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-400 text-[10px] font-black rounded uppercase">Available</span>
-                        ) : (
-                            <span className="px-2 py-1 bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-400 text-[10px] font-black rounded uppercase">Busy</span>
-                        )}
+                        <button 
+                            onClick={() => {
+                                updateProfile({ availabilityStatus: !profile.availabilityStatus });
+                                toast.success(`Status updated to ${!profile.availabilityStatus ? 'Available' : 'Busy'}`);
+                            }}
+                            disabled={isUpdating}
+                            className={`relative w-14 h-7 rounded-full transition-colors duration-300 ${profile.availabilityStatus ? 'bg-stitch-primary' : 'bg-slate-200 dark:bg-slate-700'} ${isUpdating ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                            aria-label="Toggle availability"
+                        >
+                            <span 
+                                className={`absolute top-1 bg-white w-5 h-5 rounded-full transition-all duration-300 shadow-sm ${profile.availabilityStatus ? 'left-[30px]' : 'left-1'}`}
+                            ></span>
+                        </button>
                     </div>
                 </div>
             </section>
@@ -74,7 +85,7 @@ export const ProfileContact = ({ profile }: { profile: ProfileData }) => {
                     Request Verification
                     <ShieldQuestion className="w-5 h-5 group-hover:text-white" />
                 </Button>
-                <Button variant="outline" className="w-full flex items-center justify-between p-6 bg-white/80 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl border-slate-200 dark:border-slate-700 font-black tracking-tight hover:border-stitch-primary transition-all">
+                <Button onClick={onEditClick} variant="outline" className="w-full flex items-center justify-between p-6 bg-white/80 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl border-slate-200 dark:border-slate-700 font-black tracking-tight hover:border-stitch-primary transition-all">
                     Profile Settings
                     <Share2 className="w-5 h-5" />
                 </Button>

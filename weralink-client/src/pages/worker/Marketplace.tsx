@@ -11,15 +11,15 @@ export default function MarketplacePage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
     
-    const { data: gigs, isLoading } = gigHooks.useGetMarketplaceGigs(filters);
+    const { 
+        data, 
+        isLoading,
+        fetchNextPage,
+        hasNextPage,
+        isFetchingNextPage
+    } = gigHooks.useGetMarketplaceGigs(filters);
 
-    const filteredGigs = (gigs || []).filter((gig: any) => {
-        if (!searchQuery) return true;
-        const query = searchQuery.toLowerCase();
-        return gig.title.toLowerCase().includes(query) || 
-               gig.category.toLowerCase().includes(query) || 
-               (gig.location && gig.location.toLowerCase().includes(query));
-    });
+    const filteredGigs = data ? data.pages.flatMap((page: any) => page.gigs) : [];
 
     const handleFilterChange = (newFilters: any) => {
         setFilters((prev: any) => {
@@ -29,6 +29,10 @@ export default function MarketplacePage() {
              }
              return { ...prev, ...newFilters };
         });
+    };
+
+    const handleSearch = () => {
+        setFilters((prev: any) => ({ ...prev, search: searchQuery }));
     };
 
     return (
@@ -47,9 +51,13 @@ export default function MarketplacePage() {
                                 placeholder="Search for micro-gigs (e.g., 'delivery', 'typing')..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
+                                onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(); }}
                             />
                         </div>
-                        <Button className="h-14 bg-primary-wera hover:bg-primary-dark text-white px-10 rounded-xl font-bold shadow-lg shadow-primary-wera/20 transition-all active:scale-95">
+                        <Button 
+                            onClick={handleSearch}
+                            className="h-14 bg-primary-wera hover:bg-primary-dark text-white px-10 rounded-xl font-bold shadow-lg shadow-primary-wera/20 transition-all active:scale-95"
+                        >
                             Search Gigs
                         </Button>
                     </div>
@@ -112,11 +120,16 @@ export default function MarketplacePage() {
                             </div>
                         )}
                         
-                        {filteredGigs.length > 0 && (
+                        {hasNextPage && (
                             <div className="mt-12 flex justify-center">
-                                <Button variant="outline" className="h-12 px-8 border-2 border-primary-wera/20 text-primary-wera font-bold rounded-xl hover:bg-primary-wera/5 transition-all flex items-center gap-2">
-                                    Load More Gigs
-                                    <RefreshCw className="w-4 h-4 ml-2" />
+                                <Button 
+                                    variant="outline" 
+                                    onClick={() => fetchNextPage()}
+                                    disabled={isFetchingNextPage}
+                                    className="h-12 px-8 border-2 border-primary-wera/20 text-primary-wera font-bold rounded-xl hover:bg-primary-wera/5 transition-all flex items-center gap-2"
+                                >
+                                    {isFetchingNextPage ? 'Loading...' : 'Load More Gigs'}
+                                    <RefreshCw className={`w-4 h-4 ml-2 ${isFetchingNextPage ? 'animate-spin' : ''}`} />
                                 </Button>
                             </div>
                         )}

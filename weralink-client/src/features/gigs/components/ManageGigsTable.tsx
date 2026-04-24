@@ -104,7 +104,7 @@ export const ManageGigsTable: React.FC = () => {
                                     </div>
                                 ) : (
                                     filteredGigs.map((gig: any) => (
-                                        <div key={gig.id} className="grid grid-cols-1 md:grid-cols-12 gap-4 p-4 md:p-3 items-center hover:bg-slate-50/80 transition-colors group">
+                                        <div key={gig.id} className="grid grid-cols-1 md:grid-cols-12 gap-4 p-4 md:p-3 items-center hover:bg-pink-50 transition-colors group">
                                             
                                             {/* List Decorator */}
                                             <div className="hidden md:flex col-span-1 justify-center">
@@ -123,7 +123,7 @@ export const ManageGigsTable: React.FC = () => {
 
                                             {/* Mobile: Middle Row / Desktop: Col 2, 2, 2 */}
                                             <div className="col-span-1 md:col-span-6 flex flex-row md:grid md:grid-cols-6 items-center justify-between gap-4 mt-3 md:mt-0">
-                                                <div className="md:col-span-2 md:text-right font-black text-accent-dark text-lg md:text-base">
+                                                <div className="md:col-span-2 md:text-right font-black text-green-400 text-lg md:text-base">
                                                     {gig.currency} {gig.payAmount?.toLocaleString()}
                                                 </div>
                                                 <div className="md:col-span-2 text-center">
