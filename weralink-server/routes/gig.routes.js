@@ -25,7 +25,6 @@ router.put('/:id', requireAuth, requirePermission(PERMISSIONS.GIG_EDIT_OWN), upd
 
 router.delete('/:id', requireAuth, requirePermission(PERMISSIONS.GIG_DELETE_OWN), deleteGig);
 
-// Direction A: Employer → Find Recommended Workers for a Gig
 router.get('/:gigId/matches', requireAuth, requirePermission(PERMISSIONS.MATCH_VIEW), getMatchesForGig);
 
 export default router;

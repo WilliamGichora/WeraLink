@@ -1,20 +1,23 @@
 import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { gigHooks } from '../api/gig.api';
+import { useApplyForGig } from '@/features/execution/api/execution.api';
 import { 
     Briefcase, MapPin, Clock, CheckCircle2, 
     ArrowLeft, AlertCircle, Building2, UserCircle, Star, 
-    ArrowRight
+    ArrowRight, Sparkles
 } from 'lucide-react';
 import { RecommendedWorkersPanel } from './RecommendedWorkersPanel';
+import { useProfile } from '@/features/profile/hooks/useProfile';
 
-// STUB function. Later, map this to worker's actual skills context vs gig's skills.
-const calculateMatchScore = (gigSkillIds: string[], workerSkills: string[] = ['s1', 's4', 's6']) => {
+// Function to calculate match score based on worker's actual skills vs gig's required skills.
+const calculateMatchScore = (gigSkillIds: string[], workerSkillIds: string[]) => {
     if (!gigSkillIds || gigSkillIds.length === 0) return 100;
-    const matched = gigSkillIds.filter(id => workerSkills.includes(id));
+    if (!workerSkillIds || workerSkillIds.length === 0) return 0;
+    const matched = gigSkillIds.filter(id => workerSkillIds.includes(id));
     return Math.round((matched.length / gigSkillIds.length) * 100);
 };
 
@@ -25,11 +28,14 @@ interface GigDetailViewProps {
 export const GigDetailView: React.FC<GigDetailViewProps> = ({ viewerRole = 'worker' }) => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
+    const location = useLocation();
+    const recommendation = location.state?.recommendation;
     
     // Auth & Skills data
     const { data: gig, isLoading, isError } = gigHooks.useGetGigById(id);
+    const { data: profile } = useProfile();
 
-    const [isApplying, setIsApplying] = useState(false);
+    const applyMutation = useApplyForGig();
 
     if (isLoading) {
         return (
@@ -52,14 +58,18 @@ export const GigDetailView: React.FC<GigDetailViewProps> = ({ viewerRole = 'work
 
     // Match score mapping with real skill data
     const gigSkillIds = gig.skills?.map((s: any) => s.skillId) || [];
-    const matchScore = calculateMatchScore(gigSkillIds);
+    const workerSkillIds = profile?.user.skills?.map((s: any) => s.skillId) || [];
+    const matchScore = calculateMatchScore(gigSkillIds, workerSkillIds);
 
-    const handleApply = () => {
-        setIsApplying(true);
-        setTimeout(() => {
-            setIsApplying(false);
-            navigate('/worker/applications'); // Mock redirect after apply
-        }, 1500);
+    const handleApply = async () => {
+        if (!id) return;
+        try {
+            await applyMutation.mutateAsync(id);
+            navigate('/worker/applications');
+        } catch (error) {
+            console.error('Failed to apply:', error);
+            alert('Failed to apply. You might have already applied or the gig is not open.');
+        }
     };
 
     return (
@@ -214,6 +224,77 @@ export const GigDetailView: React.FC<GigDetailViewProps> = ({ viewerRole = 'work
                         </div>
                     </Card>
 
+                    {/* Why You're a Match Card */}
+                    {recommendation && (
+                        <Card className="bg-[linear-gradient(to_bottom_right,#f0fdf4,#ecfdf5)] rounded-xl shadow-sm border border-green-200">
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-lg font-bold text-green-900 flex items-center justify-between">
+                                    <span className="flex items-center gap-2">
+                                        <Sparkles className="w-5 h-5 text-green-600" /> Why You're a Match
+                                    </span>
+                                    <span className="text-sm px-2 py-1 rounded bg-green-100 text-green-700 font-bold border border-green-200 shadow-sm">
+                                        {Math.round(recommendation.matchScore)}%
+                                    </span>
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="space-y-4">
+                                    <div>
+                                        <h4 className="text-xs font-bold text-green-800 uppercase tracking-wider mb-2">Strengths</h4>
+                                        <ul className="space-y-2">
+                                            {recommendation.matchReasons.map((reason: string, i: number) => (
+                                                <li key={i} className="text-sm text-green-800 flex items-start gap-2">
+                                                    <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0 mt-0.5" />
+                                                    <span className="leading-snug">{reason}</span>
+                                                </li>
+                                            ))}
+                                            {recommendation.matchedSkills.length > 0 && (
+                                                <li className="text-sm text-green-800 flex items-start gap-2">
+                                                    <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0 mt-0.5" />
+                                                    <span className="leading-snug">Matching skills: <span className="font-bold">{recommendation.matchedSkills.join(', ')}</span></span>
+                                                </li>
+                                            )}
+                                        </ul>
+                                    </div>
+
+                                    {(recommendation.missingSkills.length > 0 || (recommendation.matchSuggestions && recommendation.matchSuggestions.length > 0)) && (
+                                        <div className="pt-3 border-t border-green-200/50">
+                                            <h4 className="text-xs font-bold text-amber-800 uppercase tracking-wider mb-2 flex items-center gap-1">
+                                                <AlertCircle className="w-3.5 h-3.5" /> Suggestions for Improvement
+                                            </h4>
+                                            
+                                            {recommendation.matchSuggestions && recommendation.matchSuggestions.length > 0 && (
+                                                <ul className="space-y-1.5 mb-3">
+                                                    {recommendation.matchSuggestions.map((s: string, i: number) => (
+                                                        <li key={i} className="text-sm text-amber-900 flex items-start gap-2">
+                                                            <div className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0 mt-1.5" />
+                                                            <span className="leading-snug">{s}</span>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            )}
+
+                                            {recommendation.missingSkills.length > 0 && (
+                                                <>
+                                                    <p className="text-xs text-amber-900 mb-2 leading-snug">
+                                                        Consider learning these skills to increase your chances of being hired for similar gigs in the future:
+                                                    </p>
+                                                    <div className="flex flex-wrap gap-1.5">
+                                                        {recommendation.missingSkills.map((skill: string, i: number) => (
+                                                            <span key={i} className="px-2 py-1 bg-amber-100 text-amber-800 text-[11px] font-bold rounded border border-amber-200">
+                                                                {skill}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
+
                     {/* Skills Required Card */}
                     <Card className="bg-white rounded-xl shadow-sm border border-primary-wera/10">
                         <CardHeader className="pb-2">
@@ -227,7 +308,7 @@ export const GigDetailView: React.FC<GigDetailViewProps> = ({ viewerRole = 'work
                         <CardContent>
                             <div className="flex flex-wrap gap-2">
                                 {gig.skills?.map((s: any) => {
-                                    const haveSkill = Math.random() > 0.5; // Mock user skill check
+                                    const haveSkill = workerSkillIds.includes(s.skillId);
                                     return (
                                         <span key={s.skillId} className={`px-3 py-1 text-xs font-semibold rounded-full flex items-center gap-1 ${haveSkill ? 'bg-primary-wera/10 text-primary-wera border border-primary-wera/20' : 'bg-slate-100 text-text-main/70 border border-slate-200'}`}>
                                             {s.skill?.name || 'Unknown Skill'}
@@ -289,12 +370,12 @@ export const GigDetailView: React.FC<GigDetailViewProps> = ({ viewerRole = 'work
                                 <Button 
                                     className="flex-1 md:flex-none h-12 bg-primary-wera text-white px-8 rounded-lg font-bold text-lg shadow-lg shadow-primary-wera/30 hover:bg-primary-dark transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-2"
                                     onClick={handleApply}
-                                    disabled={isApplying}
+                                    disabled={applyMutation.isPending}
                                 >
-                                    {isApplying ? (
+                                    {applyMutation.isPending ? (
                                         <><div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> Submitting...</>
                                     ) : (
-                                        <>Accept Job <ArrowRight className="w-5 h-5" /></>
+                                        <>Apply <ArrowRight className="w-5 h-5" /></>
                                     )}
                                 </Button>
                             </>

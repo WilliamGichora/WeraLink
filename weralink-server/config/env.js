@@ -12,7 +12,14 @@ export const {
     JWT_REFRESH_EXPIRES_IN,
     SUPABASE_URL,
     SUPABASE_SECRET_KEY,
+    DARAJA_SHORTCODE,
+    DARAJA_CONSUMER_KEY,
+    DARAJA_CONSUMER_SECRET,
+    DARAJA_PASSKEY,
+    APP_BASE_URL
 } = process.env
+
+export const USE_MOCK_MPESA = false
 
 export const isDevelopment = NODE_ENV === 'development'
 export const isProduction = NODE_ENV === 'production'

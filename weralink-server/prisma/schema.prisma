@@ -46,19 +46,20 @@ model User {
   reports     Report[]
 
   // Self-referencing Rating relationship
-  ratingsGiven Rating[] @relation("Rater")
-  ratingsRecv  Rating[] @relation("Ratee")
+  ratingsGiven Rating[]  @relation("Rater")
+  ratingsRecv  Rating[]  @relation("Ratee")
+  disputes     Dispute[]
 }
 
 model Profile {
-  id                 String   @id @default(uuid())
-  userId             String   @unique @db.Uuid
-  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                 String  @id @default(uuid())
+  userId             String  @unique @db.Uuid
+  user               User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   bio                String?
   location           String?
-  availabilityStatus Boolean  @default(true)
-  portfolio          Json?    // [{ id, title, description, url, type }]
-  verified           Boolean  @default(false)
+  availabilityStatus Boolean @default(true)
+  portfolio          Json? // [{ id, title, description, url, type }]
+  verified           Boolean @default(false)
 }
 
 // --- 2. TRUST & SKILL ECOSYSTEM ---
@@ -133,20 +134,20 @@ enum WorkType {
 }
 
 model Gig {
-  id               String      @id @default(uuid())
-  employerId       String      @db.Uuid
-  employer         User        @relation("EmployerGigs", fields: [employerId], references: [id], onDelete: Cascade)
-  title            String
-  description      String
-  category         GigCategory
-  workType         WorkType    @default(REMOTE)
-  payAmount        Decimal     @db.Decimal(10, 2)
-  currency         String      @default("KES")
-  location         String
-  status           GigStatus   @default(OPEN)
-  createdAt        DateTime    @default(now())
-  updatedAt        DateTime    @updatedAt
-  expiresAt        DateTime?
+  id          String      @id @default(uuid())
+  employerId  String      @db.Uuid
+  employer    User        @relation("EmployerGigs", fields: [employerId], references: [id], onDelete: Cascade)
+  title       String
+  description String
+  category    GigCategory
+  workType    WorkType    @default(REMOTE)
+  payAmount   Decimal     @db.Decimal(10, 2)
+  currency    String      @default("KES")
+  location    String
+  status      GigStatus   @default(OPEN)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  expiresAt   DateTime?
 
   // Dynamic Evidence Requirement
   // Format: [{"tag": "translated_doc", "label": "Translated Document", "type": "FILE", "accept": [".pdf"], "maxSizeMB": 10, "min": 1, "required": true}]
@@ -172,29 +173,37 @@ enum AssignmentStatus {
   OFFERED
   ACCEPTED
   SUBMITTED
+  REVISION_REQUESTED
   APPROVED
   PAID
   DISPUTED
+  FAILED
 }
 
 model Assignment {
-  id          String           @id @default(uuid())
-  gigId       String
-  workerId    String           @db.Uuid
-  status      AssignmentStatus @default(OFFERED)
-  offeredAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-  acceptedAt  DateTime?
-  submittedAt DateTime?
-  approvedAt  DateTime?
-  paidAt      DateTime?
+  id                   String           @id @default(uuid())
+  gigId                String
+  workerId             String           @db.Uuid
+  status               AssignmentStatus @default(OFFERED)
+  offeredAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+  acceptedAt           DateTime?
+  submittedAt          DateTime?
+  approvedAt           DateTime?
+  paidAt               DateTime?
+  deadlineAt           DateTime?
+  autoApproveAt        DateTime?
+  extensionRequestedAt DateTime?
+  extensionReason      String?
+  isExtensionGranted   Boolean?
 
   gig    Gig  @relation(fields: [gigId], references: [id], onDelete: Cascade)
   worker User @relation("WorkerAssignments", fields: [workerId], references: [id], onDelete: Cascade)
 
   evidence    Evidence[]
-  transaction Transaction?
+  transactions Transaction[]
   ratings     Rating[]
+  dispute     Dispute?
 }
 
 model Evidence {
@@ -225,18 +234,24 @@ enum TransactionType {
 }
 
 model Transaction {
-  id           String            @id @default(uuid())
-  assignmentId String            @unique
-  assignment   Assignment        @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
-  amount       Int // Stored in Cents/Base unit for Daraja KES
-  currency     String            @default("KES")
-  type         TransactionType
-  status       TransactionStatus @default(PENDING)
-  mpesaRef     String?           @unique // The critical Safaricom reference 
-  initiatedAt  DateTime          @default(now())
-  completedAt  DateTime?
-  updatedAt    DateTime          @updatedAt
-  retryCount   Int               @default(0)
+  id                String            @id @default(uuid())
+  assignmentId      String            
+  assignment        Assignment        @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  amount            Int // Stored in Cents/Base unit for Daraja KES
+  currency          String            @default("KES")
+  type              TransactionType
+  status            TransactionStatus @default(PENDING)
+  mpesaRef          String?           @unique // The critical Safaricom reference 
+  checkoutRequestId String?           @unique // For STK Push tracking
+  merchantRequestId String? // For STK Push tracking
+  receiptNumber     String?           @unique // The actual M-Pesa receipt
+  metadata          Json? // Store full Safaricom callback payload
+  initiatedAt       DateTime          @default(now())
+  completedAt       DateTime?
+  updatedAt         DateTime          @updatedAt
+  retryCount        Int               @default(0)
+
+  @@unique([assignmentId, type])
 }
 
 model Rating {
@@ -251,6 +266,19 @@ model Rating {
 
   rater User @relation("Rater", fields: [raterId], references: [id], onDelete: Cascade)
   ratee User @relation("Ratee", fields: [rateeId], references: [id], onDelete: Cascade)
+}
+
+model Dispute {
+  id           String     @id @default(uuid())
+  assignmentId String     @unique
+  assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  raisedById   String     @db.Uuid
+  raisedBy     User       @relation(fields: [raisedById], references: [id], onDelete: Cascade)
+  reason       String
+  status       String     @default("OPEN") // OPEN, RESOLVED_FOR_WORKER, RESOLVED_FOR_EMPLOYER
+  resolution   String?
+  createdAt    DateTime   @default(now())
+  resolvedAt   DateTime?
 }
 
 // --- 5. TRAINING & REPORTING ---

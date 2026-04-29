@@ -138,8 +138,8 @@ export const NAV_CONFIG: NavConfigMap = {
       categories: [
         {
           items: [
-            { title: "All Applicants", href: "/employer/applicants", description: "View across all your active gigs", icon: Users },
-            { title: "Pending Reviews", href: "/employer/applicants/pending", description: "Awaiting your decision", icon: AlertTriangle },
+            { title: "Application Feed", href: "/employer/applicants-global", description: "Consolidated view of all candidates across your gigs", icon: Users },
+            /*{ title: "Review & Matching", href: "/employer/applicants", description: "Evaluate candidate fit and matching breakdown", icon: Target },*/
           ]
         }
       ]
@@ -149,7 +149,7 @@ export const NAV_CONFIG: NavConfigMap = {
       categories: [
         {
           items: [
-            { title: "Submitted Work", href: "/employer/review", description: "Assignments with pending evidence", icon: CheckCircle },
+            { title: "Submitted Work", href: "/employer/review", description: "Review Submitted work", icon: CheckCircle },
             { title: "Ready for Approval", href: "/employer/review/approval", description: "Final check before releasing payment", icon: Star },
           ]
         }

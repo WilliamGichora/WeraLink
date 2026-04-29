@@ -15,7 +15,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Search, MoreVertical, Edit, Eye, Trash2, Filter } from 'lucide-react';
+import { Search, MoreVertical, Edit, Eye, Trash2, Filter, ArrowUpRight } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
 type GigStatus = 'ALL' | 'OPEN' | 'ASSIGNED' | 'COMPLETED' | 'CLOSED' | 'CANCELLED' | 'DRAFT';
@@ -127,9 +127,13 @@ export const ManageGigsTable: React.FC = () => {
                                                     {gig.currency} {gig.payAmount?.toLocaleString()}
                                                 </div>
                                                 <div className="md:col-span-2 text-center">
-                                                    <span className="inline-flex items-center justify-center bg-slate-50 text-text-main/70 rounded-lg px-3 py-1 text-sm border border-slate-200 font-bold shadow-sm">
+                                                    <Link 
+                                                        to={`/employer/gigs/${gig.id}/applicants`}
+                                                        className="inline-flex items-center justify-center bg-slate-50 text-text-main/70 rounded-lg px-3 py-1 text-sm border border-slate-200 font-bold shadow-sm hover:bg-primary-wera/10 hover:text-primary-wera hover:border-primary-wera/30 transition-all cursor-pointer group/badge"
+                                                    >
                                                         {gig._count?.assignments ?? 0} <span className="hidden sm:inline ml-1">Applied</span>
-                                                    </span>
+                                                        <ArrowUpRight className="w-3 h-3 ml-1 opacity-0 group-hover/badge:opacity-100 transition-opacity" />
+                                                    </Link>
                                                 </div>
                                                 <div className="md:col-span-2 text-center">
                                                     <Badge variant="outline" className={`ml-auto md:mx-auto shadow-sm px-3 py-1 ${getStatusColor(gig.status)}`}>

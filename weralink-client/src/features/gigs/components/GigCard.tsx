@@ -48,7 +48,7 @@ export const GigCard: React.FC<GigCardProps> = ({ gig, className = '', recommend
     return (
         <Card 
             className={`group bg-[linear-gradient(to_bottom,#ffffff,#F6E8EA)] rounded-2xl overflow-hidden border border-transparent hover:border-primary-wera/30 hover:shadow-xl transition-all flex flex-col cursor-pointer ${className}`}
-            onClick={() => navigate(`/worker/gigs/${gig.id}`)}
+            onClick={() => navigate(`/worker/gigs/${gig.id}`, { state: { recommendation } })}
         >
             <div className="h-40 w-full overflow-hidden bg-slate-100 relative">
                 <img 

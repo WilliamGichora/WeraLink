@@ -358,8 +358,9 @@ export function scoreWorkerForGig(worker, gig) {
 export function scoreGigForWorker(gig, worker) {
     const result = scoreWorkerForGig(worker, gig);
 
-    // Generate human-readable match reasons
+    // Generate human-readable match reasons and suggestions
     const reasons = generateMatchReasons(result, gig, worker);
+    const suggestions = generateMatchSuggestions(result, gig, worker);
 
     // Additional gig-specific tags
     const gigTags = [...result.tags];
@@ -383,6 +384,7 @@ export function scoreGigForWorker(gig, worker) {
         },
         matchScore: result.matchScore,
         matchReasons: reasons,
+        matchSuggestions: suggestions,
         matchedSkills: result.matchedSkills,
         missingSkills: result.missingSkills,
         tags: gigTags,
@@ -424,12 +426,55 @@ export function generateMatchReasons(scoreResult, gig, worker) {
         reasons.push('Near your location');
     }
 
-    // Rating reason
+    // Performance Multipliers
     if (scoreResult.breakdown.ratingMultiplier > 1.03) {
         reasons.push('Your high rating gives you a boost');
     }
+    if (scoreResult.breakdown.completionMultiplier > 1.02) {
+        reasons.push('Your high gig completion rate boosts your score');
+    }
+    if (scoreResult.breakdown.responseMultiplier > 1.02) {
+        reasons.push('Fast response times give you an edge');
+    }
+
+    // Bonuses
+    if (scoreResult.breakdown.badgeBonus > 0) {
+        reasons.push('Your earned badges provide an extra advantage');
+    }
+    if (scoreResult.breakdown.trainingBonus > 0) {
+        reasons.push('Completed training modules increase your match score');
+    }
+    
+    // Cold Start
+    if (scoreResult.tags?.includes('fresh-talent') || scoreResult.tags?.includes('early-career')) {
+        reasons.push('WeraLink boosts new talent to help you get started');
+    }
 
     return reasons;
+}
+
+/**
+ * Generates actionable suggestions for the worker to improve their match score.
+ */
+export function generateMatchSuggestions(scoreResult, gig, worker) {
+    const suggestions = [];
+    
+    // If rating multiplier is a penalty
+    if (scoreResult.breakdown.ratingMultiplier < 1.0) {
+        suggestions.push('Improving your average rating will boost your match score.');
+    }
+    
+    // If completion rate is a penalty
+    if (scoreResult.breakdown.completionMultiplier < 1.0) {
+        suggestions.push('Focus on successfully completing your assigned gigs to improve your completion rate multiplier.');
+    }
+    
+    // If availability is an issue (e.g. active assignments limit)
+    if (worker.activeAssignmentCount >= 2) {
+        suggestions.push('You have multiple active assignments. Finishing them will free up your availability score.');
+    }
+
+    return suggestions;
 }
 
 /**

@@ -64,4 +64,5 @@ typings/
 
 /generated/prisma
 
-/scripts
+/scripts/test_db.js
+/scripts/generate_security_credential.js
