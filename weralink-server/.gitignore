@@ -66,3 +66,7 @@ typings/
 
 /scripts/test_db.js
 /scripts/generate_security_credential.js
+/scripts/revert.js
+/scripts/sync_payouts.js
+/scripts/simulate-payout-success.js
+/scripts/sync-payouts.js

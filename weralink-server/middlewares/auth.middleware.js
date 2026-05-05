@@ -78,6 +78,26 @@ export const requireAuth = async (req, res, next) => {
 };
 
 /**
+ * Identifies the user if a valid token is provided, but allows guest access if not.
+ * Useful for public routes that want to show user-specific context (e.g., "you already applied").
+ */
+export const optionalAuth = async (req, res, next) => {
+    try {
+        const token = extractToken(req);
+        if (!token) return next();
+
+        const { data: { user }, error } = await supabase.auth.getUser(token);
+        if (error || !user) return next();
+
+        req.user = { id: user.id };
+        next();
+    } catch (error) {
+        // Silently fail and continue as guest
+        next();
+    }
+};
+
+/**
  * @param {string[]} allowedRoles
  */
 export const requireRole = (allowedRoles) => {

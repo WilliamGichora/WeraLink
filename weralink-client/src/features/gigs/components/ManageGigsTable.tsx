@@ -15,8 +15,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Search, MoreVertical, Edit, Eye, Trash2, Filter, ArrowUpRight } from 'lucide-react';
+import { Search, MoreVertical, Edit, Eye, Trash2, Filter, ArrowUpRight, RotateCcw } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
 type GigStatus = 'ALL' | 'OPEN' | 'ASSIGNED' | 'COMPLETED' | 'CLOSED' | 'CANCELLED' | 'DRAFT';
 
@@ -24,7 +25,9 @@ export const ManageGigsTable: React.FC = () => {
     const navigate = useNavigate();
     const { data: gigs, isLoading } = gigHooks.useGetMyGigs();
     const deleteMutation = gigHooks.useDeleteGig();
+    const repostMutation = gigHooks.useRepostGig();
     const [gigToDelete, setGigToDelete] = useState<any>(null);
+    const [gigToRepost, setGigToRepost] = useState<any>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [statusTab, setStatusTab] = useState<GigStatus>('ALL');
 
@@ -159,6 +162,11 @@ export const ManageGigsTable: React.FC = () => {
                                                                 <Edit className="w-4 h-4 mr-3 text-slate-400" /> Edit Gig
                                                             </DropdownMenuItem>
                                                         ) : null}
+                                                        {(gig.status === 'CANCELLED' || gig.status === 'COMPLETED') && (
+                                                            <DropdownMenuItem onClick={() => setGigToRepost(gig)} className="hover:bg-slate-50 cursor-pointer rounded-lg font-bold text-primary-wera">
+                                                                <RotateCcw className="w-4 h-4 mr-3" /> Repost Gig
+                                                            </DropdownMenuItem>
+                                                        )}
                                                         {(gig.status === 'OPEN' || gig.status === 'DRAFT') && (
                                                             <DropdownMenuItem onClick={() => setGigToDelete(gig)} className="text-red-600 hover:bg-red-50 hover:text-red-700 focus:bg-red-50 focus:text-red-700 cursor-pointer mt-1 border-t border-slate-100 pt-2 rounded-lg font-bold">
                                                                 <Trash2 className="w-4 h-4 mr-3" /> Cancel Gig
@@ -215,6 +223,52 @@ export const ManageGigsTable: React.FC = () => {
                                 <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> Canceling...</>
                             ) : (
                                 "Yes, Cancel It"
+                            )}
+                        </Button>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+            
+            <AlertDialog open={!!gigToRepost} onOpenChange={(open) => !open && setGigToRepost(null)}>
+                <AlertDialogContent className="bg-white border-slate-200 rounded-2xl p-6 sm:max-w-md shadow-2xl">
+                    <AlertDialogHeader>
+                        <div className="mx-auto w-12 h-12 bg-primary-wera/10 rounded-full flex items-center justify-center mb-4">
+                            <RotateCcw className="w-6 h-6 text-primary-wera" />
+                        </div>
+                        <AlertDialogTitle className="text-xl font-bold text-accent-dark text-center">
+                            Repost Gig?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="text-text-main/70 text-center text-sm">
+                            {gigToRepost?.status === 'CANCELLED' ? (
+                                <>This will move <strong className="text-accent-dark">"{gigToRepost?.title}"</strong> back to the active marketplace with a new 30-day deadline. Previous applications will be kept for history, and you can accept new ones.</>
+                            ) : (
+                                <>This will create a <strong className="text-accent-dark">new copy</strong> of the gig <strong className="text-accent-dark">"{gigToRepost?.title}"</strong> as a fresh opportunity. This preserves your historical data while allowing you to hire again for the same task.</>
+                            )}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="mt-6 flex flex-col md:flex-col gap-3">
+                        <AlertDialogCancel disabled={repostMutation.isPending} className="mt-0 w-full rounded-xl border-slate-200 font-bold hover:bg-slate-50 text-text-main/70 active:scale-95 transition-transform">
+                            Cancel
+                        </AlertDialogCancel>
+                        <Button 
+                            disabled={repostMutation.isPending}
+                            onClick={async () => {
+                                if (gigToRepost) {
+                                    try {
+                                        const result = await repostMutation.mutateAsync(gigToRepost.id);
+                                        toast.success(result.action === 'RENEWED' ? 'Gig renewed successfully!' : 'Gig cloned successfully!');
+                                        setGigToRepost(null);
+                                    } catch (err: any) {
+                                        toast.error(err.response?.data?.message || 'Failed to repost gig');
+                                    }
+                                }
+                            }}
+                            className="w-full rounded-xl bg-primary-wera text-white font-bold hover:bg-primary-dark active:scale-95 transition-transform flex items-center justify-center gap-2"
+                        >
+                            {repostMutation.isPending ? (
+                                <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> Reposting...</>
+                            ) : (
+                                "Confirm Repost"
                             )}
                         </Button>
                     </AlertDialogFooter>

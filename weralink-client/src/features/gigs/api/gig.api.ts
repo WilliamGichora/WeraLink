@@ -112,6 +112,23 @@ export const gigHooks = {
       },
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: ['gigs'] });
+        queryClient.invalidateQueries({ queryKey: ['assignments'] });
+        queryClient.invalidateQueries({ queryKey: ['matches'] });
+      },
+    });
+  },
+  
+  useRepostGig: () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+      mutationFn: async (id: string) => {
+        const { data } = await api.post<{ success: boolean; data: { action: string, gig: any } }>(`/gigs/${id}/repost`);
+        return data.data;
+      },
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['gigs'] });
+        queryClient.invalidateQueries({ queryKey: ['assignments'] });
+        queryClient.invalidateQueries({ queryKey: ['matches'] });
       },
     });
   },

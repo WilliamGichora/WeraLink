@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { requireAuth, requireRole, requirePermission } from '../middlewares/auth.middleware.js';
+import { optionalAuth, requireAuth, requireRole, requirePermission } from '../middlewares/auth.middleware.js';
 import { PERMISSIONS } from '../config/roles.js';
 import {
     createGig,
@@ -8,6 +8,7 @@ import {
     getMyGigs,
     updateGig,
     deleteGig,
+    repostGig,
 } from '../controllers/gig.controller.js';
 import { getMatchesForGig } from '../controllers/matching.controller.js';
 
@@ -17,13 +18,14 @@ router.get('/mine', requireAuth, requireRole(['EMPLOYER']), getMyGigs);
 
 router.get('/', getGigs);
 
-router.get('/:id', getGigById);
+router.get('/:id', optionalAuth, getGigById);
 
 router.post('/', requireAuth, requirePermission(PERMISSIONS.GIG_CREATE), createGig);
 
 router.put('/:id', requireAuth, requirePermission(PERMISSIONS.GIG_EDIT_OWN), updateGig);
 
 router.delete('/:id', requireAuth, requirePermission(PERMISSIONS.GIG_DELETE_OWN), deleteGig);
+router.post('/:id/repost', requireAuth, requirePermission(PERMISSIONS.GIG_CREATE), repostGig);
 
 router.get('/:gigId/matches', requireAuth, requirePermission(PERMISSIONS.MATCH_VIEW), getMatchesForGig);
 

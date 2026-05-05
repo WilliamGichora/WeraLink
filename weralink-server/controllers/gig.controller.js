@@ -265,6 +265,9 @@ export const getGigById = async (req, res) => {
                 skills: { include: { skill: true } },
                 employer: { select: { name: true } },
                 _count: { select: { assignments: true } },
+                assignments: req.user?.id ? {
+                    where: { workerId: req.user.id }
+                } : false
             },
         });
 
@@ -427,17 +430,131 @@ export const deleteGig = async (req, res) => {
             ]);
         }
 
-        const cancelledGig = await prisma.gig.update({
-            where: { id },
-            data: { status: 'CANCELLED' },
-            select: { id: true, title: true, status: true, updatedAt: true },
-        });
+        // Transaction: Cancel Gig + Cancel all pending/active assignments
+        const [cancelledGig] = await prisma.$transaction([
+            prisma.gig.update({
+                where: { id },
+                data: { status: 'CANCELLED' },
+                select: { id: true, title: true, status: true, updatedAt: true },
+            }),
+            prisma.assignment.updateMany({
+                where: { 
+                    gigId: id,
+                    status: { in: ['OFFERED', 'ACCEPTED', 'SUBMITTED', 'REVISION_REQUESTED'] }
+                },
+                data: { status: 'CANCELLED' }
+            })
+        ]);
 
         return respond(res, 200, { gig: cancelledGig });
     } catch (error) {
         console.error('Delete Gig Error:', error);
         return respond(res, 500, null, null, [
             { code: 'INTERNAL_ERROR', message: 'Failed to cancel gig.' },
+        ]);
+    }
+};
+
+/**
+ * POST /api/gigs/:id/repost
+ * Protected: requireAuth + requirePermission(GIG_CREATE) — Employer only.
+ * 
+ * Logic:
+ * 1. If CANCELLED: Resets status to OPEN, refreshes createdAt/expiresAt.
+ * 2. If COMPLETED: Clones the gig into a new record.
+ * 3. Sets deadline to 30 days from now.
+ */
+export const repostGig = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const employerId = req.user.id;
+
+        const existing = await prisma.gig.findUnique({
+            where: { id },
+            include: { skills: true }
+        });
+
+        if (!existing) {
+            return respond(res, 404, null, null, [
+                { code: 'NOT_FOUND', message: 'Gig not found.' },
+            ]);
+        }
+
+        if (existing.employerId !== employerId) {
+            return respond(res, 403, null, null, [
+                { code: 'FORBIDDEN', message: 'You can only repost your own gigs.' },
+            ]);
+        }
+
+        const validStatuses = ['CANCELLED', 'COMPLETED'];
+        if (!validStatuses.includes(existing.status)) {
+            return respond(res, 400, null, null, [
+                { code: 'BAD_REQUEST', message: `Only ${validStatuses.join(' or ')} gigs can be reposted.` },
+            ]);
+        }
+
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 30);
+
+        if (existing.status === 'CANCELLED') {
+            // RENEW: Clean slate approach. Delete old applications and reset gig.
+            const renewed = await prisma.$transaction(async (tx) => {
+                // Delete all assignments for this gig to reset applicants to 0
+                await tx.assignment.deleteMany({
+                    where: { gigId: id }
+                });
+
+                // Update the gig status and timestamps
+                return await tx.gig.update({
+                    where: { id },
+                    data: {
+                        status: 'OPEN',
+                        createdAt: new Date(),
+                        expiresAt,
+                        updatedAt: new Date()
+                    },
+                    include: {
+                        skills: { include: { skill: true } },
+                        employer: { select: { name: true } },
+                        _count: { select: { assignments: true } },
+                    }
+                });
+            });
+            return respond(res, 200, { gig: renewed, action: 'RENEWED' });
+        } else {
+            // CLONE: Create new record based on the old one
+            const cloned = await prisma.gig.create({
+                data: {
+                    employerId,
+                    title: existing.title,
+                    description: existing.description,
+                    category: existing.category,
+                    workType: existing.workType,
+                    payAmount: existing.payAmount,
+                    currency: existing.currency,
+                    location: existing.location,
+                    evidenceTemplate: existing.evidenceTemplate,
+                    status: 'OPEN',
+                    expiresAt,
+                    skills: {
+                        create: existing.skills.map(s => ({
+                            skillId: s.skillId,
+                            requiredLevel: s.requiredLevel || 1,
+                        })),
+                    },
+                },
+                include: {
+                    skills: { include: { skill: true } },
+                    employer: { select: { name: true } },
+                    _count: { select: { assignments: true } },
+                }
+            });
+            return respond(res, 201, { gig: cloned, action: 'CLONED' });
+        }
+    } catch (error) {
+        console.error('Repost Gig Error:', error);
+        return respond(res, 500, null, null, [
+            { code: 'INTERNAL_ERROR', message: 'Failed to repost gig.', detail: error.message },
         ]);
     }
 };

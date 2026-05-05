@@ -44,6 +44,7 @@ model User {
   assignments Assignment[]       @relation("WorkerAssignments")
   completions ModuleCompletion[]
   reports     Report[]
+  notifications Notification[]
 
   // Self-referencing Rating relationship
   ratingsGiven Rating[]  @relation("Rater")
@@ -60,6 +61,18 @@ model Profile {
   availabilityStatus Boolean @default(true)
   portfolio          Json? // [{ id, title, description, url, type }]
   verified           Boolean @default(false)
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String   @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  type      String   // 'REVISION_REQUESTED', 'APPROVED', 'SUBMITTED', etc.
+  linkUrl   String?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
 }
 
 // --- 2. TRUST & SKILL ECOSYSTEM ---
@@ -178,6 +191,7 @@ enum AssignmentStatus {
   PAID
   DISPUTED
   FAILED
+  CANCELLED
 }
 
 model Assignment {
@@ -196,6 +210,8 @@ model Assignment {
   extensionRequestedAt DateTime?
   extensionReason      String?
   isExtensionGranted   Boolean?
+  completionNotes      String?
+  revisionNotes        String?
 
   gig    Gig  @relation(fields: [gigId], references: [id], onDelete: Cascade)
   worker User @relation("WorkerAssignments", fields: [workerId], references: [id], onDelete: Cascade)

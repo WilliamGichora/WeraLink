@@ -149,7 +149,7 @@ export const NAV_CONFIG: NavConfigMap = {
       categories: [
         {
           items: [
-            { title: "Submitted Work", href: "/employer/review", description: "Review Submitted work", icon: CheckCircle },
+            { title: "Submitted Work", href: "/employer/reviews", description: "Review Submitted work", icon: CheckCircle },
             { title: "Ready for Approval", href: "/employer/review/approval", description: "Final check before releasing payment", icon: Star },
           ]
         }

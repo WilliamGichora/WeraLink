@@ -24,6 +24,7 @@ router.post('/assignments/:id/submit', requireAuth, requirePermission(PERMISSION
 
 // Employer Review (Employers only)
 router.post('/assignments/:id/review', requireAuth, requirePermission(PERMISSIONS.EVIDENCE_REVIEW), ExecutionController.reviewWork);
+router.get('/assignments/employer/reviews', requireAuth, requirePermission(PERMISSIONS.EVIDENCE_REVIEW), ExecutionController.getEmployerPendingReviews);
 
 // Employer Applicant Management (Per Gig)
 router.get('/gigs/:id/applicants', requireAuth, requirePermission(PERMISSIONS.GIG_MANAGE), ExecutionController.getGigApplicants);

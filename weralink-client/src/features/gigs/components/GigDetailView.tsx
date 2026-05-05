@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { RecommendedWorkersPanel } from './RecommendedWorkersPanel';
 import { useProfile } from '@/features/profile/hooks/useProfile';
+import { toast } from 'sonner';
 
 // Function to calculate match score based on worker's actual skills vs gig's required skills.
 const calculateMatchScore = (gigSkillIds: string[], workerSkillIds: string[]) => {
@@ -65,12 +66,31 @@ export const GigDetailView: React.FC<GigDetailViewProps> = ({ viewerRole = 'work
         if (!id) return;
         try {
             await applyMutation.mutateAsync(id);
+            toast.success('Application submitted successfully!');
             navigate('/worker/applications');
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to apply:', error);
-            alert('Failed to apply. You might have already applied or the gig is not open.');
+            toast.error(error.message || 'Failed to apply. You might have already applied or the gig is not open.');
         }
     };
+
+    const userAssignment = gig.assignments?.find((a: any) => a.status !== 'CANCELLED');
+    const assignmentStatus = userAssignment?.status;
+
+    const getStatusDisplay = (status: string) => {
+        switch (status) {
+            case 'OFFERED': return { label: 'Application Pending', color: 'bg-amber-100 text-amber-700 border-amber-200' };
+            case 'ACCEPTED': return { label: 'Assignment Active', color: 'bg-green-100 text-green-700 border-green-200' };
+            case 'SUBMITTED': return { label: 'Under Review', color: 'bg-blue-100 text-blue-700 border-blue-200' };
+            case 'REVISION_REQUESTED': return { label: 'Revision Needed', color: 'bg-red-100 text-red-700 border-red-200' };
+            case 'CANCELLED': return { label: 'Application Cancelled', color: 'bg-red-50 text-red-700 border-red-200' };
+            case 'APPROVED':
+            case 'PAID': return { label: 'Gig Completed', color: 'bg-slate-100 text-slate-700 border-slate-200' };
+            default: return null;
+        }
+    };
+
+    const statusInfo = assignmentStatus ? getStatusDisplay(assignmentStatus) : null;
 
     return (
         <div className="w-full animate-in fade-in slide-in-from-bottom-4 duration-500 font-sans bg-background-light min-h-screen pb-24">
@@ -96,6 +116,11 @@ export const GigDetailView: React.FC<GigDetailViewProps> = ({ viewerRole = 'work
                                 <span className="bg-white/10 text-gray-200 px-2 py-1 rounded text-xs font-semibold tracking-wider uppercase border border-white/10">
                                     {gig.workType === 'REMOTE' ? 'Remote' : 'On-Site'}
                                 </span>
+                                {statusInfo && (
+                                    <span className={`px-2 py-1 rounded text-xs font-bold uppercase tracking-tight border ${statusInfo.color}`}>
+                                        {statusInfo.label}
+                                    </span>
+                                )}
                             </div>
                             <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-3">{gig.title}</h1>
                             <p className="text-gray-400 flex items-center gap-2">
@@ -339,14 +364,23 @@ export const GigDetailView: React.FC<GigDetailViewProps> = ({ viewerRole = 'work
             </div>
 
             {/* Bottom sticky action bar mimicking html */}
-            <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-40 p-4 md:px-8">
+            <div className="fixed bottom-0 left-0 right-0 bg-[#F6E8EA] border-t border-slate-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-40 p-4 md:px-8">
                 <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-                    <div className="hidden md:block">
-                        <p className="text-xs text-slate-500 uppercase tracking-wide font-medium">Job Offer Expires In</p>
-                        <p className="text-lg font-bold text-accent-text flex items-center gap-1">
-                            <Clock className="w-4 h-4" /> {Math.ceil((new Date(gig.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24))} Days
-                        </p>
-                    </div>
+                    {gig.status === 'OPEN' ? (
+                        <div className="hidden md:block">
+                            <p className="text-xs text-slate-500 uppercase tracking-wide font-medium">Job Offer Expires In</p>
+                            <p className="text-lg font-bold text-accent-text flex items-center gap-1">
+                                <Clock className="w-4 h-4" /> {Math.ceil((new Date(gig.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24))} Days
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="hidden md:block">
+                            <p className="text-xs text-slate-500 uppercase tracking-wide font-medium">Gig Status</p>
+                            <p className="text-lg font-bold text-primary-wera flex items-center gap-1">
+                                <CheckCircle2 className="w-4 h-4" /> {gig.status.replace('_', ' ')}
+                            </p>
+                        </div>
+                    )}
                     <div className="flex items-center gap-4 w-full md:w-auto">
                         {viewerRole === 'employer' ? (
                             <>
@@ -365,19 +399,55 @@ export const GigDetailView: React.FC<GigDetailViewProps> = ({ viewerRole = 'work
                         ) : (
                             <>
                                 <Button variant="outline" className="flex-1 md:flex-none h-12 border-slate-300 text-slate-700 px-6 rounded-lg font-bold hover:bg-slate-50" onClick={() => navigate(-1)}>
-                                    Decline
+                                    {assignmentStatus ? 'Back' : 'Decline'}
                                 </Button>
-                                <Button 
-                                    className="flex-1 md:flex-none h-12 bg-primary-wera text-white px-8 rounded-lg font-bold text-lg shadow-lg shadow-primary-wera/30 hover:bg-primary-dark transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-2"
-                                    onClick={handleApply}
-                                    disabled={applyMutation.isPending}
-                                >
-                                    {applyMutation.isPending ? (
-                                        <><div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> Submitting...</>
-                                    ) : (
-                                        <>Apply <ArrowRight className="w-5 h-5" /></>
-                                    )}
-                                </Button>
+                                {assignmentStatus ? (
+                                    <div className="flex items-center gap-3">
+                                        <div className={`hidden sm:flex px-4 py-2 rounded-lg font-bold border text-sm ${statusInfo?.color}`}>
+                                            {statusInfo?.label}
+                                        </div>
+                                        {(assignmentStatus === 'ACCEPTED' || assignmentStatus === 'REVISION_REQUESTED') ? (
+                                            <Button 
+                                                className="flex-1 md:flex-none h-12 bg-primary-wera text-white px-8 rounded-lg font-bold text-lg shadow-lg shadow-primary-wera/30 hover:bg-primary-dark transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-2"
+                                                onClick={() => navigate(`/worker/assignments/${userAssignment.id}/submit`)}
+                                            >
+                                                Go to Assignment <ArrowRight className="w-5 h-5" />
+                                            </Button>
+                                        ) : assignmentStatus === 'CANCELLED' ? (
+                                            <Button variant="outline" disabled className="flex-1 md:flex-none h-12 border-red-200 text-red-500 px-8 rounded-lg font-bold bg-red-50">
+                                                Application Cancelled
+                                            </Button>
+                                        ) : (
+                                            /* Only show View Status if not yet completed and not cancelled */
+                                            !['APPROVED', 'PAID', 'CANCELLED'].includes(assignmentStatus) && (
+                                                <Button 
+                                                    variant="outline"
+                                                    className="flex-1 md:flex-none h-12 border-primary-wera/30 text-primary-wera px-8 rounded-lg font-bold hover:bg-primary-wera/5"
+                                                    onClick={() => navigate('/worker/applications')}
+                                                >
+                                                    View Application Status
+                                                </Button>
+                                            )
+                                        )}
+                                    </div>
+
+                                ) : gig.status === 'CANCELLED' ? (
+                                    <Button variant="outline" disabled className="flex-1 md:flex-none h-12 border-red-200 text-red-500 px-8 rounded-lg font-bold bg-red-50">
+                                        Gig Cancelled
+                                    </Button>
+                                ) : (
+                                    <Button 
+                                        className="flex-1 md:flex-none h-12 bg-primary-wera text-white px-8 rounded-lg font-bold text-lg shadow-lg shadow-primary-wera/30 hover:bg-primary-dark transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-2"
+                                        onClick={handleApply}
+                                        disabled={applyMutation.isPending}
+                                    >
+                                        {applyMutation.isPending ? (
+                                            <><div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> Submitting...</>
+                                        ) : (
+                                            <>Apply <ArrowRight className="w-5 h-5" /></>
+                                        )}
+                                    </Button>
+                                )}
                             </>
                         )}
                     </div>

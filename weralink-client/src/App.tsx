@@ -15,15 +15,18 @@ import ManageGigsPage from "./pages/employer/ManageGigs";
 import EmployerGigDetailPage from "./pages/employer/GigDetail";
 import EditGigPage from "./pages/employer/EditGig";
 import ReviewSubmission from "./pages/employer/ReviewSubmission";
+import ReviewListPage from "./pages/employer/ReviewListPage";
 import GigApplicants from "./pages/employer/GigApplicants";
 import ApplicantReview from "./pages/employer/ApplicantReview";
 import EmployerApplicants from "./pages/employer/EmployerApplicants";
+import NotificationsPage from "./pages/common/NotificationsPage";
 import { WorkerLayout } from "./layouts/WorkerLayout";
 import { EmployerLayout } from "./layouts/EmployerLayout";
 import { PublicLayout } from "./layouts/PublicLayout";
 import { AdminLayout } from "./layouts/AdminLayout";
 import { AuthProvider } from "./features/auth/context/AuthContext";
 import { ProtectedRoute, PublicRoute } from "./components/ProtectedRoute";
+import { Toaster } from "./components/ui/sonner";
 
 function App() {
   return (
@@ -47,23 +50,26 @@ function App() {
               <Route path="applications" element={<MyApplications />} />
               <Route path="assignments" element={<ActiveAssignments />} />
               <Route path="history" element={<CompletedGigs />} />
-              <Route path="assignments/:id/submit" element={<SubmitEvidence />} />
-            </Route>
-          </Route>
-
-          <Route element={<ProtectedRoute allowedRoles={['EMPLOYER']} />}>
-            <Route path="/employer" element={<EmployerLayout />}>
-              <Route index element={<EmployerDashboard />} />
-              <Route path="gigs" element={<ManageGigsPage />} />
-              <Route path="gigs/new" element={<CreateGigPage />} />
-              <Route path="gigs/:id" element={<EmployerGigDetailPage />} />
-              <Route path="gigs/:id/edit" element={<EditGigPage />} />
-              <Route path="gigs/:id/applicants" element={<GigApplicants />} />
-              <Route path="applicants-global" element={<EmployerApplicants />} />
-              <Route path="applicants/:id/review" element={<ApplicantReview />} />
-              <Route path="assignments/review/:id" element={<ReviewSubmission />} />
-            </Route>
-          </Route>
+               <Route path="assignments/:id/submit" element={<SubmitEvidence />} />
+               <Route path="notifications" element={<NotificationsPage />} />
+             </Route>
+           </Route>
+ 
+           <Route element={<ProtectedRoute allowedRoles={['EMPLOYER']} />}>
+             <Route path="/employer" element={<EmployerLayout />}>
+               <Route index element={<EmployerDashboard />} />
+               <Route path="gigs" element={<ManageGigsPage />} />
+               <Route path="gigs/new" element={<CreateGigPage />} />
+               <Route path="gigs/:id" element={<EmployerGigDetailPage />} />
+               <Route path="gigs/:id/edit" element={<EditGigPage />} />
+               <Route path="gigs/:id/applicants" element={<GigApplicants />} />
+               <Route path="applicants-global" element={<EmployerApplicants />} />
+               <Route path="applicants/:id/review" element={<ApplicantReview />} />
+               <Route path="reviews" element={<ReviewListPage />} />
+               <Route path="assignments/review/:id" element={<ReviewSubmission />} />
+               <Route path="notifications" element={<NotificationsPage />} />
+             </Route>
+           </Route>
 
           <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
             <Route path="/admin" element={<AdminLayout />}>
@@ -75,6 +81,7 @@ function App() {
           <Route path="*" element={<Navigate to="/auth" replace />} />
         </Routes>
       </BrowserRouter>
+      <Toaster />
     </AuthProvider>
   );
 }

@@ -1,4 +1,3 @@
-import React from 'react';
 import { useGetWorkerAssignments } from '@/features/execution/api/execution.api';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -7,7 +6,7 @@ import { Clock, MapPin, Building2, ExternalLink } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function MyApplications() {
-  const { data: assignments, isLoading } = useGetWorkerAssignments(['OFFERED']);
+  const { data: assignments, isLoading } = useGetWorkerAssignments(['OFFERED', 'CANCELLED']);
 
   if (isLoading) {
     return (
@@ -45,9 +44,15 @@ export default function MyApplications() {
                 <div className="p-6 flex-1">
                   <div className="flex items-start justify-between gap-4 mb-2">
                     <h3 className="text-xl font-bold text-accent-dark">{assignment.gig.title}</h3>
-                    <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 font-bold shrink-0">
-                      Pending Review
-                    </Badge>
+                    {assignment.status === 'CANCELLED' ? (
+                      <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 font-bold shrink-0">
+                        Cancelled
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 font-bold shrink-0">
+                        Pending Review
+                      </Badge>
+                    )}
                   </div>
                   
                   <div className="flex flex-wrap items-center gap-4 text-sm text-text-main/70 mb-4">

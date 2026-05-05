@@ -26,6 +26,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { NotificationDropdown } from './NotificationDropdown';
 
 export const AppNavbar: React.FC = () => {
   const { user, isAuthenticated, logout } = useAuth();
@@ -141,10 +142,7 @@ export const AppNavbar: React.FC = () => {
         <div className="flex items-center ml-auto gap-2 md:gap-4">
           {isAuthenticated ? (
             <>
-              <Button variant="ghost" size="icon" className="text-gray-300 hover:text-white hover:bg-white/10">
-                <Bell className="h-5 w-5" />
-                <span className="sr-only">Notifications</span>
-              </Button>
+              <NotificationDropdown />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-8 w-8 rounded-full ml-2 hover:opacity-80">

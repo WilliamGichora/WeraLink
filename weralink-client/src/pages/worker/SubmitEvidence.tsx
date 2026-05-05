@@ -33,14 +33,24 @@ export const SubmitEvidence = () => {
   useEffect(() => {
     if (assignment?.gig?.evidenceTemplate) {
       const template = assignment.gig.evidenceTemplate as any[];
-      setEvidenceStates(template.map(item => ({
-        id: item.id || Math.random().toString(36).substr(2, 9),
-        type: item.type,
-        label: item.label,
-        required: item.required || false,
-        value: '',
-        isCompleted: false
-      })));
+      const existingEvidence = assignment.evidence || [];
+      
+      setEvidenceStates(template.map(item => {
+        const existing = existingEvidence.find((ev: any) => ev.requirementTag === item.id);
+        return {
+          id: item.id || Math.random().toString(36).substr(2, 9),
+          type: item.type,
+          label: item.label,
+          required: item.required || false,
+          value: existing?.fileUrl || '',
+          fileName: existing?.fileUrl ? existing.fileUrl.split('/').pop() : undefined,
+          isCompleted: !!existing?.fileUrl
+        };
+      }));
+
+      if (assignment.completionNotes) {
+        setNotes(assignment.completionNotes);
+      }
     }
   }, [assignment]);
 
@@ -166,6 +176,26 @@ export const SubmitEvidence = () => {
             </div>
           </div>
         </div>
+
+        {assignment.status === 'REVISION_REQUESTED' && (
+          <div className="mb-8 bg-amber-50 border border-amber-200 rounded-2xl p-6 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
+            <div className="flex items-start gap-4">
+              <div className="bg-amber-100 p-3 rounded-xl text-amber-600">
+                <AlertCircle className="w-6 h-6" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-amber-900 font-bold text-lg mb-1">Revision Requested</h3>
+                <p className="text-amber-800 text-sm leading-relaxed mb-4">
+                  The employer has requested changes to your submission. Please review the notes below and resubmit your work.
+                </p>
+                <div className="bg-white/60 rounded-xl p-4 border border-amber-200/50">
+                  <p className="text-xs font-bold text-amber-900 uppercase tracking-widest mb-2 opacity-60">Feedback from Employer</p>
+                  <p className="text-amber-900 font-medium italic">"{assignment.revisionNotes || 'No specific notes provided.'}"</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Main Content */}

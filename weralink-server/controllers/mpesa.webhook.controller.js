@@ -98,7 +98,24 @@ export class MpesaWebhookController {
 
           await tx.assignment.update({
             where: { id: transaction.assignmentId },
-            data: { status: 'PAID', paidAt: new Date() }
+            data: { status: 'PAID', paidAt: new Date() },
+            include: { gig: true }
+          });
+
+          // Fetch the assignment again with relations for notification
+          const updatedAssignment = await tx.assignment.findUnique({
+            where: { id: transaction.assignmentId },
+            include: { gig: true }
+          });
+
+          await tx.notification.create({
+            data: {
+              userId: updatedAssignment.workerId,
+              title: 'Payment Successful!',
+              message: `Your payment for "${updatedAssignment.gig.title}" has been processed successfully. M-Pesa Receipt: ${receipt}`,
+              type: 'PAID',
+              linkUrl: `/worker/history`
+            }
           });
         });
         console.log(`[Webhook] B2C Success: Transaction ${transaction.id} completed.`);

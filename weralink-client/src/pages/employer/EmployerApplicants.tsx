@@ -14,10 +14,7 @@ import {
   ChevronRight, 
   Filter, 
   LayoutGrid, 
-  List,
-  Zap,
-  ArrowUpRight
-} from 'lucide-react';
+  List} from 'lucide-react';
 
 export default function EmployerApplicants() {
   const navigate = useNavigate();
@@ -72,7 +69,7 @@ export default function EmployerApplicants() {
                 </Button>
              </div>
              <Button asChild className="bg-primary-wera hover:bg-primary-dark text-white rounded-xl font-bold h-11 px-6 shadow-lg shadow-primary-wera/20">
-               <Link to="/employer/manage-gigs">Manage Gigs</Link>
+               <Link to="/employer/gigs">Manage Gigs</Link>
              </Button>
           </div>
         </div>

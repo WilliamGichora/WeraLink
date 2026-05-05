@@ -1,13 +1,23 @@
 import React from 'react';
-import { useGetWorkerAssignments } from '@/features/execution/api/execution.api';
+import { useGetWorkerAssignments, useGetTransactionByAssignment } from '@/features/execution/api/execution.api';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Clock, MapPin, Building2, CheckCircle2, AlertTriangle, ExternalLink } from 'lucide-react';
+import { Clock, MapPin, Building2, CheckCircle2, AlertTriangle, ExternalLink, FileText } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { ReceiptModal } from '@/components/execution/ReceiptModal';
+import { useState } from 'react';
 
 export default function CompletedGigs() {
   const { data: assignments, isLoading } = useGetWorkerAssignments(['SUBMITTED', 'APPROVED', 'PAID', 'DISPUTED']);
+  const [selectedAssignmentId, setSelectedAssignmentId] = useState<string | null>(null);
+  const { data: transaction } = useGetTransactionByAssignment(selectedAssignmentId || undefined);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleViewReceipt = (assignmentId: string) => {
+    setSelectedAssignmentId(assignmentId);
+    setIsModalOpen(true);
+  };
 
   if (isLoading) {
     return (
@@ -92,11 +102,20 @@ export default function CompletedGigs() {
                     <p className={`text-2xl font-black mb-4 ${assignment.status === 'PAID' ? 'text-primary-wera' : 'text-slate-600'}`}>
                       {assignment.gig.currency} {Number(assignment.gig.payAmount).toLocaleString()}
                     </p>
-                    <Button variant="outline" asChild className="w-full border-slate-300 text-accent-dark hover:bg-slate-100 font-bold">
+                    <Button variant="outline" asChild className="w-full border-slate-300 text-accent-dark hover:bg-slate-100 font-bold mb-2">
                       <Link to={`/worker/gigs/${assignment.gigId}`}>
                         View Details <ExternalLink className="w-4 h-4 ml-2" />
                       </Link>
                     </Button>
+
+                    {assignment.status === 'PAID' && (
+                      <Button 
+                        onClick={() => handleViewReceipt(assignment.id)}
+                        className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl shadow-md shadow-emerald-500/20"
+                      >
+                        View Receipt <FileText className="w-4 h-4 ml-2" />
+                      </Button>
+                    )}
                   </div>
                 </div>
               </Card>
@@ -104,6 +123,12 @@ export default function CompletedGigs() {
           })}
         </div>
       )}
+
+      <ReceiptModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        transaction={transaction} 
+      />
     </div>
   );
 }

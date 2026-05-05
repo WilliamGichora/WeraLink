@@ -141,13 +141,13 @@ export class ExecutionController {
     try {
       const { id } = req.params;
       const workerId = req.user?.id || req.body.workerId;
-      const { evidenceData } = req.body;
+      const { evidenceData, completionNotes } = req.body;
 
       if (!evidenceData || !Array.isArray(evidenceData) || evidenceData.length === 0) {
         return errorResponse(res, { message: 'At least one piece of evidence is required', code: 'MISSING_EVIDENCE' });
       }
 
-      await AssignmentService.submitWork(id, workerId, evidenceData);
+      await AssignmentService.submitWork(id, workerId, evidenceData, completionNotes);
 
       return successResponse(res, null, 'Work submitted successfully');
     } catch (error) {
@@ -205,8 +205,6 @@ export class ExecutionController {
         }
       }
 
-      // Update the assignment state in the database only after M-Pesa initiation succeeds
-      // (or immediately if action is REVISE/DISPUTE)
       await AssignmentService.reviewSubmission(id, action, reason);
 
       return successResponse(res, { action }, `Assignment review processed: ${action}`);
@@ -248,6 +246,24 @@ export class ExecutionController {
 
       const applicants = await AssignmentService.getEmployerApplicants(employerId);
       return successResponse(res, applicants);
+    } catch (error) {
+      return errorResponse(res, error);
+    }
+  }
+  /**
+   * GET /api/assignments/employer/reviews
+   * Retrieves all submissions pending review for an employer
+   */
+  static async getEmployerPendingReviews(req, res) {
+    try {
+      const employerId = req.user?.id;
+
+      if (!employerId) {
+        return errorResponse(res, { message: 'Authentication required', code: 'AUTH_REQUIRED' }, 401);
+      }
+
+      const reviews = await AssignmentService.getEmployerPendingReviews(employerId);
+      return successResponse(res, reviews);
     } catch (error) {
       return errorResponse(res, error);
     }

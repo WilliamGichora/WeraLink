@@ -169,6 +169,23 @@ export const useGetEmployerApplicants = () => {
 };
 
 /**
+ * Query to get all pending reviews for an employer
+ */
+export const useGetEmployerPendingReviews = () => {
+  return useQuery({
+    queryKey: ['employerReviews'],
+    queryFn: async () => {
+      try {
+        const response = await api.get('/assignments/employer/reviews');
+        return response.data.data;
+      } catch (error) {
+        throw new Error(extractErrorMessage(error));
+      }
+    }
+  });
+};
+
+/**
  * Mutation for Employer to initiate Escrow (Accept Application)
  * This will eventually trigger the M-Pesa STK push.
  */
@@ -221,5 +238,66 @@ export const useGetTransactionStatus = (checkoutRequestId: string | null) => {
       if (query.state.data?.status === 'PENDING') return 3000;
       return false;
     }
+  });
+};
+/**
+ * Query to get notifications for the current user
+ */
+export const useGetNotifications = () => {
+  return useQuery({
+    queryKey: ['notifications'],
+    queryFn: async () => {
+      try {
+        const response = await api.get('/notifications');
+        return response.data.data;
+      } catch (error) {
+        throw new Error(extractErrorMessage(error));
+      }
+    },
+    refetchInterval: 30000, // Refresh every 30 seconds
+  });
+};
+
+/**
+ * Mutation to mark a notification as read
+ */
+export const useMarkNotificationRead = () => {
+  return useMutation({
+    mutationFn: async (id: string) => {
+      try {
+        const response = await api.patch(`/notifications/${id}/read`);
+        return response.data;
+      } catch (error) {
+        throw new Error(extractErrorMessage(error));
+      }
+    }
+  });
+};
+
+/**
+ * Mutation to mark all notifications as read
+ */
+export const useMarkAllNotificationsRead = () => {
+  return useMutation({
+    mutationFn: async () => {
+      try {
+        const response = await api.patch('/notifications/read-all');
+        return response.data;
+      } catch (error) {
+        throw new Error(extractErrorMessage(error));
+      }
+    }
+  });
+};
+
+export const useGetTransactionByAssignment = (assignmentId: string | undefined) => {
+  return useQuery({
+    queryKey: ['transaction', assignmentId],
+    queryFn: async () => {
+      if (!assignmentId) return null;
+      const { data } = await api.get(`/transactions/assignment/${assignmentId}`);
+      return data.data;
+    },
+    enabled: !!assignmentId,
   });
 };

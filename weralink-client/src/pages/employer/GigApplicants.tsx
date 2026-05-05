@@ -94,16 +94,28 @@ export default function GigApplicants() {
         </div>
       </div>
 
+      {gig?.status === 'CANCELLED' && (
+        <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-2xl flex items-start gap-4">
+          <AlertCircle className="w-6 h-6 text-red-600 shrink-0 mt-0.5" />
+          <div>
+            <h3 className="font-bold text-red-800 text-lg">This gig has been cancelled</h3>
+            <p className="text-red-700 font-medium">You can no longer hire or review candidates for this gig. Active applications have been nullified.</p>
+          </div>
+        </div>
+      )}
+
       {/* Main Grid */}
       {filteredApplicants.length === 0 ? (
         <Card className="bg-slate-50 border-dashed border-2 border-slate-200 rounded-3xl">
           <CardContent className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="w-20 h-20 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mb-6">
-              <Zap className="w-10 h-10" />
+            <div className="w-20 h-20 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-6">
+              <Star className="w-10 h-10" />
             </div>
-            <h3 className="text-2xl font-bold text-accent-dark mb-2">No Applicants Yet</h3>
-            <p className="text-text-main/60 max-w-sm mx-auto">
-              Once workers apply, their details and match scores will appear here.
+            <h3 className="text-2xl font-black text-accent-dark mb-2">No Candidates Found</h3>
+            <p className="text-text-main/60 mb-8 font-medium">
+              {gig?.status === 'CANCELLED' 
+                ? 'There are no active candidates because this gig was cancelled.' 
+                : 'No workers have applied to this gig yet.'}
             </p>
           </CardContent>
         </Card>

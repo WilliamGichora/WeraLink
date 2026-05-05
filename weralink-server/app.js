@@ -12,7 +12,9 @@ import gigRoutes from './routes/gig.routes.js';
 import matchingRoutes from './routes/matching.routes.js';
 import executionRoutes from './routes/execution.routes.js';
 import mpesaRoutes from './routes/mpesa.routes.js';
+import transactionRoutes from './routes/transaction.routes.js';
 import webhookRoutes from './routes/webhooks.routes.js';
+import notificationRoutes from './routes/notification.routes.js';
 import { errorHandler } from './middlewares/error.middleware.js';
 import { CronService } from './services/cron.service.js';
 const app = express();
@@ -41,7 +43,9 @@ app.use('/api/gigs', gigRoutes);
 app.use('/api/matches', matchingRoutes);
 app.use('/api', executionRoutes);
 app.use('/api/mpesa', mpesaRoutes);
+app.use('/api/transactions', transactionRoutes);
 app.use('/api/webhooks', webhookRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 app.get("/", (req, res) => {
     res.send("WeraLink API is active!");
