@@ -490,6 +490,77 @@ export class AssignmentService {
   }
 
   /**
+   * Retrieves a distinct list of workers who have had assignments with an employer.
+   * Used for dropdowns and reporting where employers need to select a specific worker.
+   */
+  static async getEmployerHiredWorkers(employerId) {
+    const assignments = await prisma.assignment.findMany({
+      where: {
+        gig: { employerId },
+        // Consider a worker 'hired' if they reached at least ACCEPTED status
+        status: { in: ['ACCEPTED', 'SUBMITTED', 'REVISION_REQUESTED', 'APPROVED', 'DISPUTED', 'PAID'] }
+      },
+      select: {
+        worker: {
+          select: {
+            id: true,
+            name: true,
+            profile: {
+              select: {
+                bio: true,
+                location: true
+              }
+            }
+          }
+        }
+      },
+      distinct: ['workerId']
+    });
+
+    return assignments.map(a => a.worker);
+  }
+
+  /**
+   * Retrieves assignments related to an employer's gigs, with status filtering.
+   * Useful for hiring history and specific status tracking.
+   */
+  static async getEmployerAssignments(employerId, statuses = []) {
+    const whereClause = {
+      gig: { employerId }
+    };
+
+    if (statuses.length > 0) {
+      whereClause.status = { in: statuses };
+    }
+
+    return await prisma.assignment.findMany({
+      where: whereClause,
+      include: {
+        gig: {
+          select: {
+            id: true,
+            title: true,
+            category: true,
+            payAmount: true,
+            currency: true,
+            location: true,
+            status: true,
+            createdAt: true
+          }
+        },
+        worker: {
+          select: {
+            id: true,
+            name: true,
+            profile: { select: { location: true } }
+          }
+        }
+      },
+      orderBy: { updatedAt: 'desc' }
+    });
+  }
+
+  /**
    * Reconciliation: Finds APPROVED assignments without a payout transaction and triggers them.
    * Handles stale PENDING transactions by deleting them and re-triggering.
    */

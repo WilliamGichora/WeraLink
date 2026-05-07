@@ -15,6 +15,9 @@ import mpesaRoutes from './routes/mpesa.routes.js';
 import transactionRoutes from './routes/transaction.routes.js';
 import webhookRoutes from './routes/webhooks.routes.js';
 import notificationRoutes from './routes/notification.routes.js';
+import ratingRoutes from './routes/rating.routes.js';
+import analyticsRoutes from './routes/analytics.routes.js';
+import reportRoutes from './routes/report.routes.js';
 import { errorHandler } from './middlewares/error.middleware.js';
 import { CronService } from './services/cron.service.js';
 const app = express();
@@ -46,6 +49,9 @@ app.use('/api/mpesa', mpesaRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/webhooks', webhookRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/ratings', ratingRoutes);
+app.use('/api/analytics', analyticsRoutes);
+app.use('/api/reports', reportRoutes);
 
 app.get("/", (req, res) => {
     res.send("WeraLink API is active!");

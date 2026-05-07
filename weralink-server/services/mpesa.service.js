@@ -7,7 +7,6 @@ import {
   DARAJA_CONSUMER_SECRET,
   DARAJA_PASSKEY,
   USE_MOCK_MPESA,
-  APP_BASE_URL,
   isProduction
 } from '../config/env.js';
 
@@ -57,16 +56,15 @@ export class MpesaService {
    * Triggers an STK Push to the Employer for Escrow Funding
    */
   static async triggerSTKPush(assignmentId, phoneNumber, amount) {
-    if (USE_MOCK_MPESA) {
+    /*if (USE_MOCK_MPESA) {
       return this.mockSTKPush(assignmentId, phoneNumber, amount);
-    }
+    }*/
 
     const token = await this.getAuthToken();
     const timestamp = new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 14);
     const password = this.getPassword(timestamp);
     const callbackUrl = `${process.env.APP_BASE_URL}/api/webhooks/mpesa/stkpush`;
 
-    // Aggressively strip non-numeric characters (like +) and handle leading 0
     const formattedPhone = phoneNumber.replace(/[^0-9]/g, '').replace(/^0/, '254');
 
     try {
@@ -144,14 +142,20 @@ export class MpesaService {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      // We handle the new transaction record creation in the webhook, but we log the attempt
-      await prisma.transaction.create({
-        data: {
+      // Record transaction intent (Upsert to handle retries safely)
+      await prisma.transaction.upsert({
+        where: { assignmentId_type: { assignmentId, type: 'PAYOUT_TO_WORKER' } },
+        create: {
           assignmentId,
           amount,
           type: 'PAYOUT_TO_WORKER',
           status: 'PENDING',
-          checkoutRequestId: response.data.ConversationID // Using ConversationID for B2C
+          checkoutRequestId: response.data.ConversationID
+        },
+        update: {
+          status: 'PENDING',
+          checkoutRequestId: response.data.ConversationID,
+          retryCount: { increment: 1 }
         }
       });
 
@@ -226,13 +230,19 @@ export class MpesaService {
 
   static async mockB2CPayout(assignmentId, phoneNumber, amount) {
     const mockConversationId = `B2C_${Date.now()}`;
-    await prisma.transaction.create({
-      data: {
+    await prisma.transaction.upsert({
+      where: { assignmentId_type: { assignmentId, type: 'PAYOUT_TO_WORKER' } },
+      create: {
         assignmentId,
         amount,
         type: 'PAYOUT_TO_WORKER',
         status: 'PENDING',
         checkoutRequestId: mockConversationId
+      },
+      update: {
+        status: 'PENDING',
+        checkoutRequestId: mockConversationId,
+        retryCount: { increment: 1 }
       }
     });
 

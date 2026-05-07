@@ -133,6 +133,22 @@ export const useReviewWork = () => {
 };
 
 /**
+ * Mutation to retry a failed B2C payout for an approved assignment
+ */
+export const useRetryPayout = () => {
+  return useMutation({
+    mutationFn: async (assignmentId: string) => {
+      try {
+        const response = await api.post(`/assignments/${assignmentId}/retry-payout`);
+        return response.data;
+      } catch (error) {
+        throw new Error(extractErrorMessage(error));
+      }
+    }
+  });
+};
+
+/**
  * Query to get all applicants for a specific gig (Employer view)
  */
 export const useGetGigApplicants = (gigId: string | undefined) => {
@@ -177,6 +193,41 @@ export const useGetEmployerPendingReviews = () => {
     queryFn: async () => {
       try {
         const response = await api.get('/assignments/employer/reviews');
+        return response.data.data;
+      } catch (error) {
+        throw new Error(extractErrorMessage(error));
+      }
+    }
+  });
+};
+
+/**
+ * Query to get all assignment history for an employer
+ */
+export const useGetEmployerHistory = (statuses?: string[]) => {
+  return useQuery({
+    queryKey: ['employerHistory', statuses],
+    queryFn: async () => {
+      try {
+        const params = statuses && statuses.length > 0 ? { statuses: statuses.join(',') } : {};
+        const response = await api.get('/assignments/employer/history', { params });
+        return response.data.data;
+      } catch (error) {
+        throw new Error(extractErrorMessage(error));
+      }
+    }
+  });
+};
+
+/**
+ * Query to get all distinct workers hired by the employer
+ */
+export const useEmployerHiredWorkers = () => {
+  return useQuery({
+    queryKey: ['employerHiredWorkers'],
+    queryFn: async () => {
+      try {
+        const response = await api.get('/assignments/employer/hired-workers');
         return response.data.data;
       } catch (error) {
         throw new Error(extractErrorMessage(error));

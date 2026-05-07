@@ -13,7 +13,7 @@ import {
   navigationMenuTriggerStyle,
 } from '@/components/ui/navigation-menu';
 import { Button } from '@/components/ui/button';
-import { Bell, User, LogOut, Menu } from 'lucide-react';
+import { Star, User, LogOut, Menu } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -162,12 +162,22 @@ export const AppNavbar: React.FC = () => {
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator className="bg-white/10" />
-                  <DropdownMenuItem asChild className="focus:bg-white/10 focus:text-white cursor-pointer">
+                  <DropdownMenuItem asChild className="focus:text-white cursor-pointer">
                     <Link to={`/${user?.role.toLowerCase()}/profile`}>
                       <User className="mr-2 h-4 w-4" />
                       <span>Profile</span>
                     </Link>
                   </DropdownMenuItem>
+                  
+                  {/* Role-specific reputation links */}
+                  {(user?.role === 'WORKER' || user?.role === 'EMPLOYER') && (
+                    <DropdownMenuItem asChild className="focus:text-white cursor-pointer">
+                      <Link to={`/${user?.role.toLowerCase()}/profile/ratings`}>
+                        <Star className="mr-2 h-4 w-4 text-amber-400" />
+                        <span>Ratings & Feedback</span>
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem onClick={() => setIsLogoutDialogOpen(true)} className="cursor-pointer text-primary-wera focus:text-white focus:bg-primary-wera/20">
                     <LogOut className="mr-2 h-4 w-4" />
                     <span>Log out</span>

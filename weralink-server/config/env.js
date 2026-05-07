@@ -17,10 +17,9 @@ export const {
     DARAJA_CONSUMER_SECRET,
     DARAJA_PASSKEY,
     APP_BASE_URL,
-    USE_MOCK_MPESA: USE_MOCK_MPESA_ENV
 } = process.env
 
-export const USE_MOCK_MPESA = USE_MOCK_MPESA_ENV === 'true'
+export const USE_MOCK_MPESA = false;
 
 export const isDevelopment = NODE_ENV === 'development'
 export const isProduction = NODE_ENV === 'production'

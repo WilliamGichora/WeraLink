@@ -1,11 +1,12 @@
-import React from 'react';
 import { useGetWorkerAssignments, useGetTransactionByAssignment } from '@/features/execution/api/execution.api';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Clock, MapPin, Building2, CheckCircle2, AlertTriangle, ExternalLink, FileText } from 'lucide-react';
+import { Clock, MapPin, Building2, CheckCircle2, AlertTriangle, ExternalLink, FileText, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { ReceiptModal } from '@/components/execution/ReceiptModal';
+import { RatingModal } from '@/features/ratings/components/RatingModal';
+import { useCheckRating } from '@/features/ratings/api/rating.api';
 import { useState } from 'react';
 
 export default function CompletedGigs() {
@@ -13,6 +14,13 @@ export default function CompletedGigs() {
   const [selectedAssignmentId, setSelectedAssignmentId] = useState<string | null>(null);
   const { data: transaction } = useGetTransactionByAssignment(selectedAssignmentId || undefined);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Rating state
+  const [ratingTarget, setRatingTarget] = useState<{
+    assignmentId: string;
+    employerName: string;
+    gigTitle: string;
+  } | null>(null);
 
   const handleViewReceipt = (assignmentId: string) => {
     setSelectedAssignmentId(assignmentId);
@@ -111,10 +119,19 @@ export default function CompletedGigs() {
                     {assignment.status === 'PAID' && (
                       <Button 
                         onClick={() => handleViewReceipt(assignment.id)}
-                        className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl shadow-md shadow-emerald-500/20"
+                        className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl shadow-md shadow-emerald-500/20 mb-2"
                       >
                         View Receipt <FileText className="w-4 h-4 ml-2" />
                       </Button>
+                    )}
+
+                    {assignment.status === 'PAID' && (
+                      <RateEmployerButton
+                        assignmentId={assignment.id}
+                        employerName={assignment.gig.employer?.name || 'Employer'}
+                        gigTitle={assignment.gig.title}
+                        onRate={(target) => setRatingTarget(target)}
+                      />
                     )}
                   </div>
                 </div>
@@ -129,6 +146,54 @@ export default function CompletedGigs() {
         onClose={() => setIsModalOpen(false)} 
         transaction={transaction} 
       />
+
+      {ratingTarget && (
+        <RatingModal
+          isOpen={!!ratingTarget}
+          onClose={() => setRatingTarget(null)}
+          assignmentId={ratingTarget.assignmentId}
+          rateeName={ratingTarget.employerName}
+          gigTitle={ratingTarget.gigTitle}
+          rateeRole="employer"
+        />
+      )}
     </div>
+  );
+}
+
+/**
+ * Sub-component that checks rating status per-assignment.
+ * Isolated to prevent re-rendering the entire list when one check resolves.
+ */
+function RateEmployerButton({
+  assignmentId,
+  employerName,
+  gigTitle,
+  onRate,
+}: {
+  assignmentId: string;
+  employerName: string;
+  gigTitle: string;
+  onRate: (target: { assignmentId: string; employerName: string; gigTitle: string }) => void;
+}) {
+  const { data: ratingStatus } = useCheckRating(assignmentId);
+
+  if (ratingStatus?.hasRated) {
+    return (
+      <div className="flex items-center justify-center gap-1.5 py-2 text-xs font-bold text-amber-600">
+        <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+        Rated {ratingStatus.rating?.score}/5
+      </div>
+    );
+  }
+
+  return (
+    <Button
+      variant="outline"
+      onClick={() => onRate({ assignmentId, employerName, gigTitle })}
+      className="w-full border-amber-200 text-amber-700 hover:bg-amber-50 font-bold rounded-xl"
+    >
+      <Star className="w-4 h-4 mr-2" /> Rate Employer
+    </Button>
   );
 }

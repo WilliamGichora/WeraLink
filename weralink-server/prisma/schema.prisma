@@ -276,12 +276,15 @@ model Rating {
   assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
   raterId      String     @db.Uuid
   rateeId      String     @db.Uuid
-  score        Int // 1-5 
+  score        Int // 1-5 overall
+  dimensions   Json?      // { quality: 1-5, communication: 1-5, timeliness: 1-5 }
   comment      String?
   createdAt    DateTime   @default(now())
 
   rater User @relation("Rater", fields: [raterId], references: [id], onDelete: Cascade)
   ratee User @relation("Ratee", fields: [rateeId], references: [id], onDelete: Cascade)
+
+  @@unique([assignmentId, raterId])
 }
 
 model Dispute {
@@ -304,7 +307,7 @@ model TrainingModule {
   title           String
   durationMinutes Int
   contentUrl      String
-  passScore       Int    @default(80) // Standard 80% pass rate
+  passScore       Int    @default(80)
 
   completions ModuleCompletion[]
 }
@@ -325,11 +328,11 @@ model ModuleCompletion {
 
 model Report {
   id          String   @id @default(uuid())
-  employerId  String   @db.Uuid
-  reportType  String // PERFORMANCE, ACTIVITY, PAYMENT
+  userId      String   @db.Uuid
+  reportType  String // EARNINGS, HISTORY, PERFORMANCE, SPENDING, GIG_ACTIVITY, WORKER_REVIEW, PAYMENT_LEDGER, HIRING_EFFICIENCY, PLATFORM_ACTIVITY, FINANCIAL_RECON, USER_TRUST
   params      Json? // Filters used to generate report
   generatedAt DateTime @default(now())
-  fileUrl     String
+  fileUrl     String?
 
-  employer User @relation(fields: [employerId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

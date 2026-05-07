@@ -46,6 +46,7 @@ export interface ProfileData {
     portfolio?: PortfolioItem[];
     verified: boolean;
     user: {
+        id: string;
         name: string;
         email: string;
         phone: string;

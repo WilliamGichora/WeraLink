@@ -1,6 +1,12 @@
-import { Download, Wallet, ClipboardCheck, Star, Search, ArrowRight, Briefcase, MapPin, Landmark, ShieldCheck, ChevronRight } from "lucide-react";
+import { Download, Wallet, ClipboardCheck, Star, Search, ArrowRight, Briefcase, MapPin, Landmark, ShieldCheck, ChevronRight, Loader2 } from "lucide-react";
+import { useWorkerAnalytics } from "@/features/analytics/api/analytics.api";
+import { useAuth } from "@/features/auth/context/AuthContext";
 
 export default function WorkerDashboard() {
+  const { user } = useAuth();
+  const { data: analytics, isLoading } = useWorkerAnalytics(1); // 1 month period for "this month"
+
+  const kpis = analytics?.kpis || {};
   return (
     <>
       <header className="bg-accent-dark text-white pt-10 pb-20 dark:bg-black relative overflow-hidden">
@@ -13,7 +19,7 @@ export default function WorkerDashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
             <div className="flex flex-col md:flex-row md:items-end justify-between mb-8">
                 <div>
-                    <h1 className="text-3xl font-bold mb-1">Habari, Worker!</h1>
+                    <h1 className="text-3xl font-bold mb-1">Habari, {user?.name?.split(' ')[0] || 'Worker'}!</h1>
                     <p className="text-gray-400">Here's how you are performing today on WeraLink.</p>
                 </div>
                 <div className="mt-4 md:mt-0">
@@ -29,31 +35,34 @@ export default function WorkerDashboard() {
                 <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 hover:bg-white/10 transition-all duration-300 group">
                     <div className="flex justify-between items-start">
                         <div>
-                            <p className="text-gray-400 text-sm font-medium mb-1">Total Earnings (Month)</p>
-                            <h3 className="text-3xl font-bold text-white group-hover:text-primary-wera transition-colors">KES 15,400</h3>
+                            <p className="text-gray-400 text-sm font-medium mb-1">Earnings (This Month)</p>
+                            <h3 className="text-3xl font-bold text-white group-hover:text-primary-wera transition-colors">
+                              {isLoading ? <Loader2 className="w-6 h-6 animate-spin text-gray-400 mt-2" /> : `KES ${(kpis.periodEarnings || 0).toLocaleString()}`}
+                            </h3>
                         </div>
                         <div className="bg-primary-wera/20 p-2 rounded-lg">
                             <Wallet className="w-6 h-6 text-primary-wera" />
                         </div>
                     </div>
-                    <div className="mt-4 flex items-center text-xs text-green-400">
-                        <span className="material-icons text-xs mr-1">trending_up</span>
-                        <span>+12% from last month</span>
+                    <div className="mt-4 flex items-center text-xs text-gray-400">
+                        <span>All time: KES {(kpis.totalEarnings || 0).toLocaleString()}</span>
                     </div>
                 </div>
                 
                 <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 hover:bg-white/10 transition-all duration-300 group">
                     <div className="flex justify-between items-start">
                         <div>
-                            <p className="text-gray-400 text-sm font-medium mb-1">Active Jobs</p>
-                            <h3 className="text-3xl font-bold text-white group-hover:text-primary-wera transition-colors">3</h3>
+                            <p className="text-gray-400 text-sm font-medium mb-1">Completed Gigs (This Month)</p>
+                            <h3 className="text-3xl font-bold text-white group-hover:text-primary-wera transition-colors">
+                              {isLoading ? <Loader2 className="w-6 h-6 animate-spin text-gray-400 mt-2" /> : (kpis.periodGigsCompleted || 0)}
+                            </h3>
                         </div>
                         <div className="bg-blue-500/20 p-2 rounded-lg">
                             <ClipboardCheck className="w-6 h-6 text-blue-400" />
                         </div>
                     </div>
                     <div className="mt-4 flex items-center text-xs text-gray-400">
-                        <span>2 due today</span>
+                        <span>All time completed: {kpis.totalGigsCompleted || 0}</span>
                     </div>
                 </div>
                 
@@ -61,14 +70,18 @@ export default function WorkerDashboard() {
                     <div className="flex justify-between items-start">
                         <div>
                             <p className="text-gray-400 text-sm font-medium mb-1">Rating</p>
-                            <h3 className="text-3xl font-bold text-white group-hover:text-primary-wera transition-colors">4.8<span className="text-lg text-gray-500 font-normal">/5.0</span></h3>
+                            <h3 className="text-3xl font-bold text-white group-hover:text-primary-wera transition-colors">
+                              {isLoading ? <Loader2 className="w-6 h-6 animate-spin text-gray-400 mt-2" /> : (
+                                <>{kpis.avgRating || '—'}<span className="text-lg text-gray-500 font-normal">/5.0</span></>
+                              )}
+                            </h3>
                         </div>
                         <div className="bg-yellow-500/20 p-2 rounded-lg">
                             <Star className="w-6 h-6 text-yellow-400" />
                         </div>
                     </div>
                     <div className="mt-4 flex items-center text-xs text-gray-400">
-                        <span>Based on 42 reviews</span>
+                        <span>Based on {kpis.totalRatings || 0} reviews</span>
                     </div>
                 </div>
             </div>

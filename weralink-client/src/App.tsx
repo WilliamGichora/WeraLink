@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { lazy, Suspense } from "react";
 import AuthPage from "./pages/public/AuthPage";
 import WorkerDashboard from "./pages/worker/Dashboard";
 import WorkerProfile from "./pages/worker/WorkerProfile";
@@ -28,6 +29,24 @@ import { AuthProvider } from "./features/auth/context/AuthContext";
 import { ProtectedRoute, PublicRoute } from "./components/ProtectedRoute";
 import { Toaster } from "./components/ui/sonner";
 
+// Lazy-loaded pages (code splitting for analytics/reports bundles)
+const WorkerAnalytics = lazy(() => import("./pages/worker/WorkerAnalytics"));
+const WorkerReports = lazy(() => import("./pages/worker/WorkerReports"));
+const EmployerAnalytics = lazy(() => import("./pages/employer/EmployerAnalytics"));
+const EmployerReports = lazy(() => import("./pages/employer/EmployerReports"));
+const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
+const AdminAnalytics = lazy(() => import("./pages/admin/AdminAnalytics"));
+const AdminReports = lazy(() => import("./pages/admin/AdminReports"));
+const WorkerRatings = lazy(() => import("./pages/worker/WorkerRatings"));
+const EmployerHistory = lazy(() => import("./pages/employer/EmployerHistory"));
+const EmployerRatings = lazy(() => import("./pages/employer/EmployerRatings"));
+
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-[50vh]">
+    <div className="w-10 h-10 border-4 border-primary-wera border-t-transparent rounded-full animate-spin" />
+  </div>
+);
+
 function App() {
   return (
     <AuthProvider>
@@ -52,6 +71,9 @@ function App() {
               <Route path="history" element={<CompletedGigs />} />
                <Route path="assignments/:id/submit" element={<SubmitEvidence />} />
                <Route path="notifications" element={<NotificationsPage />} />
+               <Route path="profile/ratings" element={<Suspense fallback={<PageLoader />}><WorkerRatings /></Suspense>} />
+               <Route path="analytics" element={<Suspense fallback={<PageLoader />}><WorkerAnalytics /></Suspense>} />
+               <Route path="reports" element={<Suspense fallback={<PageLoader />}><WorkerReports /></Suspense>} />
              </Route>
            </Route>
  
@@ -68,12 +90,18 @@ function App() {
                <Route path="reviews" element={<ReviewListPage />} />
                <Route path="assignments/review/:id" element={<ReviewSubmission />} />
                <Route path="notifications" element={<NotificationsPage />} />
+               <Route path="analytics" element={<Suspense fallback={<PageLoader />}><EmployerAnalytics /></Suspense>} />
+               <Route path="reports" element={<Suspense fallback={<PageLoader />}><EmployerReports /></Suspense>} />
+                <Route path="history" element={<Suspense fallback={<PageLoader />}><EmployerHistory /></Suspense>} />
+                <Route path="profile/ratings" element={<Suspense fallback={<PageLoader />}><EmployerRatings /></Suspense>} />
              </Route>
            </Route>
 
           <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
             <Route path="/admin" element={<AdminLayout />}>
-              <Route index element={<div className="p-8">Admin Dashboard Scaffold</div>} />
+              <Route index element={<Suspense fallback={<PageLoader />}><AdminDashboard /></Suspense>} />
+              <Route path="analytics" element={<Suspense fallback={<PageLoader />}><AdminAnalytics /></Suspense>} />
+              <Route path="reports" element={<Suspense fallback={<PageLoader />}><AdminReports /></Suspense>} />
             </Route>
           </Route>
 
@@ -87,3 +115,4 @@ function App() {
 }
 
 export default App;
+

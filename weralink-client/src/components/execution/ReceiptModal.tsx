@@ -62,7 +62,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, tra
   const { gig, worker } = assignment;
 
   return (
-    <div className="fixed inset-0 z-[9999] bg-accent-dark font-display text-text-main antialiased overflow-y-auto animate-in fade-in duration-300">
+    <div className="fixed inset-0 z-9999 bg-accent-dark font-display text-text-main antialiased overflow-y-auto animate-in fade-in duration-300">
       {/* Background Decorative Blurs */}
       <div className="fixed inset-0 opacity-20 pointer-events-none">
         <div className="absolute right-0 top-0 w-[500px] h-[500px] bg-primary-wera rounded-full blur-[120px] opacity-30"></div>
@@ -107,7 +107,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, tra
             className="bg-[#F6E8EA] rounded-xl shadow-2xl overflow-hidden relative w-full flex flex-col"
           >
             {/* Gradient Top Border */}
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary-wera via-[#893D44] to-primary-wera"></div>
+            <div className="absolute top-0 left-0 w-full h-1 bg-linear-to-r from-primary-wera via-accent-text to-primary-wera"></div>
 
             {/* Header Section */}
             <div className="p-5 text-center border-b border-gray-200/60 relative">

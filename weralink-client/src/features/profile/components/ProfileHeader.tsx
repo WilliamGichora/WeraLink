@@ -1,6 +1,8 @@
+import { Link } from 'react-router-dom';
 import type { ProfileData } from '@/features/profile/types';
 import { BadgeCheck, MapPin, Star, Clock, Pencil, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useGetRatingSummary } from '@/features/ratings/api/rating.api';
 
 interface ProfileHeaderProps {
     profile: ProfileData;
@@ -9,6 +11,7 @@ interface ProfileHeaderProps {
 
 export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ profile, onEditClick }) => {
     const { user } = profile;
+    const { data: ratingSummary } = useGetRatingSummary(user.id);
 
     return (
         <header className="bg-stitch-bg-dark pt-12 pb-24 px-4 md:px-12 relative overflow-hidden text-white">
@@ -50,11 +53,18 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ profile, onEditCli
                             <MapPin className="w-4 h-4 text-stitch-primary" />
                             <span className="text-slate-400 text-sm md:text-base">{profile.location || "Location Unknown"}</span>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <Link 
+                            to={`/${user.role.toLowerCase()}/profile/ratings`}
+                            className="flex items-center gap-2 hover:bg-white/5 p-2 -m-2 rounded-xl transition-colors cursor-pointer"
+                        >
                             <Star className="w-4 h-4 text-orange-400 fill-orange-400" />
-                            <span className="text-slate-100 font-bold">4.9/5.0</span>
-                            <span className="text-slate-400 text-sm">(124 reviews)</span>
-                        </div>
+                            <span className="text-slate-100 font-bold">
+                                {ratingSummary?.avgScore ? ratingSummary.avgScore.toFixed(1) : "0.0"}/5.0
+                            </span>
+                            <span className="text-slate-400 text-sm">
+                                ({ratingSummary?.totalRatings || 0} reviews)
+                            </span>
+                        </Link>
                         <div className="flex items-center gap-2">
                             <Clock className="w-4 h-4 text-stitch-primary" />
                             <span className="text-slate-400 text-sm md:text-base">
@@ -69,6 +79,12 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ profile, onEditCli
                     <Button onClick={onEditClick} className="flex-1 md:flex-none bg-stitch-primary text-white px-8 py-6 rounded-xl font-bold shadow-lg hover:brightness-110 active:scale-95 transition-all text-base gap-2">
                         <Pencil className="w-4 h-4" />
                         Edit Profile
+                    </Button>
+                    <Button asChild variant="outline" className="flex-none bg-white/10 backdrop-blur-md text-white border-white/20 px-6 py-6 rounded-xl hover:bg-white/20 transition-all group">
+                         <Link to={`/${user.role.toLowerCase()}/profile/ratings`} className="flex items-center gap-2">
+                            <Star className="w-5 h-5 text-orange-400 group-hover:fill-orange-400 transition-all" />
+                            <span className="hidden sm:inline font-bold">Feedback</span>
+                         </Link>
                     </Button>
                     <Button variant="outline" className="flex-none bg-white/10 backdrop-blur-md text-white border-white/20 px-6 py-6 rounded-xl hover:bg-white/20 transition-all">
                          <Search className="w-5 h-5 text-white" />

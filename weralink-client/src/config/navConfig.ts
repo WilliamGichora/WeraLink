@@ -9,16 +9,16 @@ import {
   GraduationCap,
   Award,
   Medal,
-  User,
   Settings,
-  Star,
   Users,
   FileText,
   AlertTriangle,
   Flag,
   Database,
   BarChart,
-  Target
+  BarChart3,
+  Target,
+  History
 } from "lucide-react";
 import React from "react";
 
@@ -107,13 +107,12 @@ export const NAV_CONFIG: NavConfigMap = {
       ]
     },
     {
-      title: "Profile",
+      title: "Insights",
       categories: [
         {
           items: [
-            { title: "View Profile", href: "/worker/profile", icon: User },
-            { title: "Edit Profile", href: "/worker/profile/edit", icon: Settings },
-            { title: "Ratings Received", href: "/worker/profile/ratings", icon: Star },
+            { title: "Analytics", href: "/worker/analytics", description: "Your performance metrics and trends", icon: BarChart3 },
+            { title: "Reports", href: "/worker/reports", description: "Generate branded PDF reports", icon: FileText },
           ]
         }
       ]
@@ -145,12 +144,12 @@ export const NAV_CONFIG: NavConfigMap = {
       ]
     },
     {
-      title: "Work Review",
+      title: "Hiring",
       categories: [
         {
           items: [
-            { title: "Submitted Work", href: "/employer/reviews", description: "Review Submitted work", icon: CheckCircle },
-            { title: "Ready for Approval", href: "/employer/review/approval", description: "Final check before releasing payment", icon: Star },
+            { title: "Submitted Work", href: "/employer/reviews", description: "Review work submitted by workers", icon: CheckCircle },
+            { title: "Hiring History", href: "/employer/history", description: "Archive of past gigs and workers", icon: History },
           ]
         }
       ]
@@ -168,12 +167,12 @@ export const NAV_CONFIG: NavConfigMap = {
       ]
     },
     {
-      title: "Reports",
+      title: "Insights",
       categories: [
         {
           items: [
-            { title: "Spending Report", href: "/employer/reports/spending", icon: BarChart },
-            { title: "Worker Performance", href: "/employer/reports/performance", icon: Star },
+            { title: "Analytics", href: "/employer/analytics", description: "Hiring metrics and spending trends", icon: BarChart3 },
+            { title: "Reports", href: "/employer/reports", description: "Generate branded PDF reports", icon: FileText },
           ]
         }
       ]
@@ -201,7 +200,8 @@ export const NAV_CONFIG: NavConfigMap = {
           items: [
             { title: "All Gigs", href: "/admin/gigs", icon: Briefcase },
             { title: "Open Disputes", href: "/admin/disputes", description: "Cases needing mediation", icon: AlertTriangle },
-            { title: "Audit Log & Reports", href: "/admin/reports", icon: BarChart },
+            { title: "Analytics", href: "/admin/analytics", description: "Platform performance metrics", icon: BarChart3 },
+            { title: "Reports", href: "/admin/reports", icon: BarChart },
           ]
         },
         {

@@ -1,7 +1,15 @@
 import { Link } from "react-router-dom";
-import { Wallet, ClipboardCheck, Search, Briefcase, PlusCircle, Sheet } from "lucide-react";
+import { Wallet, ClipboardCheck, Search, Briefcase, PlusCircle, Sheet, Loader2 } from "lucide-react";
+import { useEmployerAnalytics } from "@/features/analytics/api/analytics.api";
+import { useAuth } from "@/features/auth/context/AuthContext";
 
 export default function EmployerDashboard() {
+    const { user } = useAuth();
+    const { data: analytics, isLoading } = useEmployerAnalytics(1);
+    
+    const kpis = analytics?.kpis || {};
+    const activeGigs = (kpis.totalGigsPosted || 0) - (kpis.totalGigsCompleted || 0);
+    const completionRate = kpis.totalGigsPosted ? Math.round((kpis.totalGigsCompleted / kpis.totalGigsPosted) * 100) : 0;
     return (
         <>
             <header className="bg-accent-dark text-white pt-10 pb-20 dark:bg-black relative overflow-hidden">
@@ -13,7 +21,7 @@ export default function EmployerDashboard() {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
                     <div className="flex flex-col md:flex-row md:items-end justify-between mb-8">
                         <div>
-                            <h1 className="text-3xl font-bold mb-1">Welcome back, Employer!</h1>
+                            <h1 className="text-3xl font-bold mb-1">Welcome back, {user?.name?.split(' ')[0] || 'Employer'}!</h1>
                             <p className="text-gray-400">Overview of your hiring activity.</p>
                         </div>
                         <div className="mt-4 md:mt-0 flex gap-3">
@@ -29,7 +37,9 @@ export default function EmployerDashboard() {
                             <div className="flex justify-between items-start">
                                 <div>
                                     <p className="text-gray-400 text-sm font-medium mb-1">Total Spend (Month)</p>
-                                    <h3 className="text-3xl font-bold text-white group-hover:text-primary-wera transition-colors">KES 45,200</h3>
+                                    <h3 className="text-3xl font-bold text-white group-hover:text-primary-wera transition-colors">
+                                      {isLoading ? <Loader2 className="w-6 h-6 animate-spin text-gray-400 mt-2" /> : `KES ${(kpis.periodSpending || 0).toLocaleString()}`}
+                                    </h3>
                                 </div>
                                 <div className="bg-primary-wera/20 p-2 rounded-lg">
                                     <Wallet className="w-6 h-6 text-primary-wera" />
@@ -41,7 +51,9 @@ export default function EmployerDashboard() {
                             <div className="flex justify-between items-start">
                                 <div>
                                     <p className="text-gray-400 text-sm font-medium mb-1">Active Gigs</p>
-                                    <h3 className="text-3xl font-bold text-white group-hover:text-primary-wera transition-colors">3</h3>
+                                    <h3 className="text-3xl font-bold text-white group-hover:text-primary-wera transition-colors">
+                                      {isLoading ? <Loader2 className="w-6 h-6 animate-spin text-gray-400 mt-2" /> : activeGigs}
+                                    </h3>
                                 </div>
                                 <div className="bg-blue-500/20 p-2 rounded-lg">
                                     <Briefcase className="w-6 h-6 text-blue-400" />
@@ -53,7 +65,9 @@ export default function EmployerDashboard() {
                             <div className="flex justify-between items-start">
                                 <div>
                                     <p className="text-gray-400 text-sm font-medium mb-1">Completion Rate</p>
-                                    <h3 className="text-3xl font-bold text-white group-hover:text-primary-wera transition-colors">98%</h3>
+                                    <h3 className="text-3xl font-bold text-white group-hover:text-primary-wera transition-colors">
+                                      {isLoading ? <Loader2 className="w-6 h-6 animate-spin text-gray-400 mt-2" /> : `${completionRate}%`}
+                                    </h3>
                                 </div>
                                 <div className="bg-green-500/20 p-2 rounded-lg">
                                     <ClipboardCheck className="w-6 h-6 text-green-400" />

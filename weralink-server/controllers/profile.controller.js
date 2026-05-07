@@ -12,6 +12,7 @@ export const getMyProfile = async (req, res) => {
             include: {
                 user: {
                     select: {
+                        id: true,
                         name: true,
                         email: true,
                         phone: true,
@@ -63,6 +64,7 @@ export const updateMyProfile = async (req, res) => {
             include: {
                 user: {
                     select: {
+                        id: true,
                         name: true,
                         email: true,
                         phone: true,

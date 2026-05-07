@@ -1,23 +1,28 @@
 import { useState, useEffect, ChangeEvent } from 'react';
-import { ArrowLeft, CheckCircle, AlertTriangle,AlertCircle, MessageSquare, Clock, Download, ExternalLink, FileText, Camera, Info, X } from 'lucide-react';
-import { useGetAssignmentById, useReviewWork, useGetDownloadUrl, useGetTransactionByAssignment } from '@/features/execution/api/execution.api';
+import { ArrowLeft, CheckCircle, AlertTriangle, AlertCircle, MessageSquare, Clock, Download, ExternalLink, FileText, Camera, Info, X, Star, RefreshCcw } from 'lucide-react';
+import { useGetAssignmentById, useReviewWork, useGetDownloadUrl, useGetTransactionByAssignment, useRetryPayout } from '@/features/execution/api/execution.api';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { ReceiptModal } from '@/components/execution/ReceiptModal';
+import { RatingModal } from '@/features/ratings/components/RatingModal';
+import { useCheckRating } from '@/features/ratings/api/rating.api';
 
 export default function ReviewSubmission() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { data: assignment, isLoading, isError } = useGetAssignmentById(id);
+  const { data: assignment, isLoading, isError, refetch } = useGetAssignmentById(id);
   const { mutateAsync: reviewWork, isPending } = useReviewWork();
   const { mutateAsync: getDownloadUrl } = useGetDownloadUrl();
+  const { mutateAsync: retryPayout, isPending: isRetrying } = useRetryPayout();
   const [reason, setReason] = useState('');
   const [showReasonInput, setShowReasonInput] = useState<'REVISE' | 'DISPUTE' | 'APPROVE' | null>(null);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
+  const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
   const { data: transaction } = useGetTransactionByAssignment(assignment?.id);
+  const { data: ratingStatus } = useCheckRating(assignment?.status === 'PAID' ? assignment?.id : undefined);
 
   const handleDownload = async (assignmentId: string, filePath: string) => {
     try {
@@ -25,6 +30,27 @@ export default function ReviewSubmission() {
       window.open(url, '_blank');
     } catch (error) {
       toast.error('Failed to generate secure download link');
+    }
+  };
+
+  // Poll for status changes while APPROVED
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (assignment?.status === 'APPROVED') {
+      interval = setInterval(() => {
+        refetch();
+      }, 5000);
+    }
+    return () => clearInterval(interval);
+  }, [assignment?.status, refetch]);
+
+  const handleRetryPayout = async () => {
+    try {
+      await retryPayout(id!);
+      toast.success('Payout retry initiated successfully');
+      refetch();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to retry payout');
     }
   };
 
@@ -233,12 +259,47 @@ export default function ReviewSubmission() {
                 >
                   <FileText className="w-5 h-5" /> View Transaction Receipt
                 </Button>
+                {ratingStatus?.hasRated ? (
+                  <div className="flex items-center justify-center gap-1.5 py-3 text-xs font-bold text-amber-600 bg-amber-50 rounded-2xl border border-amber-100">
+                    <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                    You rated this worker {ratingStatus.rating?.score}/5
+                  </div>
+                ) : (
+                  <Button
+                    onClick={() => setIsRatingModalOpen(true)}
+                    variant="outline"
+                    className="w-full h-14 border-amber-200 text-amber-700 hover:bg-amber-50 font-bold rounded-2xl"
+                  >
+                    <Star className="w-5 h-5 mr-2" /> Rate Worker
+                  </Button>
+                )}
               </div>
             ) : assignment.status === 'APPROVED' ? (
-              <div className="bg-amber-50 border border-amber-100 rounded-2xl p-6 text-center">
-                <Clock className="w-10 h-10 text-amber-500 mx-auto mb-3" />
-                <h3 className="text-lg font-black text-amber-900 mb-1">Payment Processing</h3>
-                <p className="text-sm text-amber-700">Waiting for M-Pesa B2C confirmation...</p>
+              <div className="space-y-4">
+                <div className="bg-amber-50 border border-amber-100 rounded-2xl p-6 text-center">
+                  <Clock className="w-10 h-10 text-amber-500 mx-auto mb-3 animate-pulse" />
+                  <h3 className="text-lg font-black text-amber-900 mb-1">Payment Processing</h3>
+                  <p className="text-sm text-amber-700 mb-4">Waiting for M-Pesa B2C confirmation...</p>
+                  
+                  <div className="bg-white/50 rounded-xl p-4 border border-amber-200/50">
+                    <p className="text-xs text-amber-800 font-medium mb-3">
+                      Taking too long? M-Pesa might have failed or dropped the request.
+                    </p>
+                    <Button 
+                      variant="outline" 
+                      onClick={handleRetryPayout}
+                      disabled={isRetrying}
+                      className="w-full bg-white border-amber-200 text-amber-700 hover:bg-amber-100 font-bold"
+                    >
+                      {isRetrying ? (
+                        <div className="w-4 h-4 border-2 border-amber-500/30 border-t-amber-500 rounded-full animate-spin mr-2"></div>
+                      ) : (
+                        <RefreshCcw className="w-4 h-4 mr-2" />
+                      )}
+                      Retry Failed Payout
+                    </Button>
+                  </div>
+                </div>
               </div>
             ) : (
               <>
@@ -306,6 +367,17 @@ export default function ReviewSubmission() {
         onClose={() => setIsReceiptModalOpen(false)} 
         transaction={transaction} 
       />
+
+      {assignment && assignment.status === 'PAID' && (
+        <RatingModal
+          isOpen={isRatingModalOpen}
+          onClose={() => setIsRatingModalOpen(false)}
+          assignmentId={assignment.id}
+          rateeName={assignment.worker?.name || 'Worker'}
+          gigTitle={assignment.gig.title}
+          rateeRole="worker"
+        />
+      )}
     </div>
   );
 }

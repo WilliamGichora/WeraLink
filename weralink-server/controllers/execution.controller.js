@@ -213,6 +213,47 @@ export class ExecutionController {
     }
   }
   /**
+   * POST /api/assignments/:id/retry-payout
+   * Retries a failed or stuck B2C payout for an APPROVED assignment
+   */
+  static async retryPayout(req, res) {
+    try {
+      const { id } = req.params;
+      const employerId = req.user?.id;
+
+      const assignment = await prisma.assignment.findUnique({
+        where: { id },
+        include: { gig: true, worker: true }
+      });
+
+      if (!assignment) {
+        return errorResponse(res, { message: 'Assignment not found', code: 'NOT_FOUND' }, 404);
+      }
+
+      if (employerId && assignment.gig.employerId !== employerId) {
+        return errorResponse(res, { message: 'Unauthorized: You are not the employer for this gig', code: 'FORBIDDEN' }, 403);
+      }
+
+      if (assignment.status !== 'APPROVED') {
+        return errorResponse(res, { message: `Cannot retry payout for status ${assignment.status}`, code: 'INVALID_STATUS' }, 400);
+      }
+
+      const { MpesaService } = await import('../services/mpesa.service.js');
+      
+      await MpesaService.triggerB2CPayout(
+        id,
+        assignment.worker.phone || '+254768172782',
+        assignment.gig.payAmount
+      );
+
+      return successResponse(res, null, 'Payout retry initiated successfully');
+    } catch (error) {
+      console.error('[Payout Retry Error]:', error);
+      return errorResponse(res, { message: error.message || 'Failed to retry payout', code: 'PAYOUT_RETRY_FAILED' }, 500);
+    }
+  }
+
+  /**
    * GET /api/gigs/:id/applicants
    * Retrieves all workers who have applied for a specific gig
    */
@@ -250,6 +291,26 @@ export class ExecutionController {
       return errorResponse(res, error);
     }
   }
+
+  /**
+   * GET /api/assignments/employer/hired-workers
+   * Retrieves a distinct list of workers who have had assignments with an employer.
+   */
+  static async getEmployerHiredWorkers(req, res) {
+    try {
+      const employerId = req.user?.id;
+
+      if (!employerId) {
+        return errorResponse(res, { message: 'Authentication required', code: 'AUTH_REQUIRED' }, 401);
+      }
+
+      const workers = await AssignmentService.getEmployerHiredWorkers(employerId);
+      return successResponse(res, workers);
+    } catch (error) {
+      return errorResponse(res, error);
+    }
+  }
+
   /**
    * GET /api/assignments/employer/reviews
    * Retrieves all submissions pending review for an employer
@@ -266,6 +327,25 @@ export class ExecutionController {
       return successResponse(res, reviews);
     } catch (error) {
       return errorResponse(res, error);
+    }
+  }
+
+  /**
+   * GET /api/assignments/employer/history
+   * Retrieves all assignments (history) for an employer, optionally filtered by status
+   */
+  static async getEmployerHistory(req, res) {
+    try {
+      const employerId = req.user?.id;
+      if (!employerId) {
+        return errorResponse(res, { message: 'Authentication required', code: 'AUTH_REQUIRED' }, 401);
+      }
+
+      const statuses = req.query.statuses ? req.query.statuses.split(',') : [];
+      const history = await AssignmentService.getEmployerAssignments(employerId, statuses);
+      return successResponse(res, history);
+    } catch (error) {
+      return errorResponse(res, error, 500);
     }
   }
 }
