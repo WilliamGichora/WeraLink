@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { useGetAssignmentById } from '@/features/execution/api/execution.api';
+import { useGetAssignmentById, useRejectApplication } from '@/features/execution/api/execution.api';
 import { MpesaModal } from '@/features/execution/components/MpesaModal';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
+import { ConfirmationModal } from '@/components/ui/ConfirmationModal';
 import {
   ArrowLeft,
   Star,
@@ -26,6 +28,24 @@ export default function ApplicantReview() {
   const navigate = useNavigate();
   const { data: assignment, isLoading, error } = useGetAssignmentById(assignmentId);
   const [isMpesaModalOpen, setIsMpesaModalOpen] = useState(false);
+  const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
+  const { mutate: rejectApp, isPending: isRejecting } = useRejectApplication();
+
+  const handleReject = () => {
+    if (!assignmentId) return;
+    
+    rejectApp({ assignmentId }, {
+      onSuccess: () => {
+        toast.success('Application rejected successfully');
+        setIsRejectModalOpen(false);
+        navigate(`/employer/gigs/${assignment?.gigId}/applicants`);
+      },
+      onError: (err) => {
+        toast.error(err instanceof Error ? err.message : 'Failed to reject application');
+        setIsRejectModalOpen(false);
+      }
+    });
+  };
 
   if (isLoading) {
     return (
@@ -55,7 +75,6 @@ export default function ApplicantReview() {
 
   const { worker, gig, matchScore, matchBreakdown, matchTags } = assignment;
 
-  // Calculate stats from real data
   const averageRating = worker.ratingsRecv?.length > 0 
     ? (worker.ratingsRecv.reduce((acc: number, r: any) => acc + r.score, 0) / worker.ratingsRecv.length).toFixed(1)
     : 'New';
@@ -348,8 +367,13 @@ export default function ApplicantReview() {
             <Button variant="outline" className="w-full h-12 rounded-xl border-slate-200 font-bold text-accent-dark hover:bg-slate-50">
               <ExternalLink className="w-4 h-4 mr-2" /> View Full Portfolio
             </Button>
-            <Button variant="outline" className="w-full h-12 rounded-xl border-slate-200 font-bold text-red-600 hover:bg-red-50 hover:border-red-100">
-              Reject Application
+            <Button 
+              variant="outline" 
+              onClick={() => setIsRejectModalOpen(true)}
+              disabled={isRejecting}
+              className="w-full h-12 rounded-xl border-slate-200 font-bold text-red-600 hover:bg-red-50 hover:border-red-100 disabled:opacity-50"
+            >
+              {isRejecting ? 'Rejecting...' : 'Reject Application'}
             </Button>
           </div>
         </div>
@@ -364,6 +388,18 @@ export default function ApplicantReview() {
           setIsMpesaModalOpen(false);
           navigate(`/employer/gigs`);
         }}
+      />
+
+      <ConfirmationModal
+        isOpen={isRejectModalOpen}
+        onClose={() => setIsRejectModalOpen(false)}
+        onConfirm={handleReject}
+        title="Reject Application?"
+        description="Are you sure you want to decline this application? This worker will be notified, and this action cannot be undone."
+        confirmText="Yes, Reject"
+        cancelText="Keep Reviewing"
+        type="danger"
+        isLoading={isRejecting}
       />
     </div>
   );

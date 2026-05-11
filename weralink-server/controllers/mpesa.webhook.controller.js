@@ -64,33 +64,55 @@ export class MpesaWebhookController {
   }
 
   /**
-   * POST /api/webhooks/mpesa/b2c/v3/paymentrequest 
+   * POST /api/webhooks/mpesa/b2c
    */
   static async handleB2CCallback(req, res) {
     try {
+      console.log('--- B2C Webhook Received ---');
+      console.log('Headers:', JSON.stringify(req.headers, null, 2));
+      console.log('Body:', JSON.stringify(req.body, null, 2));
+
       const { Result } = req.body;
+      if (!Result) {
+        console.error('[Webhook] Missing Result object in B2C callback body');
+        return res.status(400).json({ error: 'Invalid callback payload' });
+      }
+
       const conversationId = Result.ConversationID;
       const resultCode = Result.ResultCode;
+      const resultDesc = Result.ResultDesc;
+
+      console.log(`[Webhook] Processing B2C Callback for ConversationID: ${conversationId}, ResultCode: ${resultCode} (${resultDesc})`);
 
       const transaction = await prisma.transaction.findFirst({
         where: { checkoutRequestId: conversationId }
       });
 
       if (!transaction) {
-        console.error(`[Webhook] Transaction not found for ConversationID: ${conversationId}`);
+        console.error(`[Webhook] Transaction not found in database for ConversationID: ${conversationId}`);
+        // Log all pending B2C transactions to help debug
+        const pendingTransactions = await prisma.transaction.findMany({
+          where: { type: 'PAYOUT_TO_WORKER', status: 'PENDING' },
+          select: { checkoutRequestId: true, id: true }
+        });
+        console.log('[Webhook] Current Pending B2C Transactions:', JSON.stringify(pendingTransactions));
+        
         return res.status(404).json({ error: 'Transaction not found' });
       }
 
       if (resultCode === 0) {
         const resultParams = Result.ResultParameters?.ResultParameter || [];
-        const receipt = resultParams.find(p => p.Key === 'B2CReceiptNumber')?.Value;
+        // Try multiple possible keys for the receipt number
+        const receipt = resultParams.find(p => p.Key === 'B2CReceiptNumber' || p.Key === 'TransactionReceipt' || p.Key === 'TransactionID')?.Value;
+
+        console.log(`[Webhook] B2C Success for Transaction ${transaction.id}. Receipt: ${receipt}`);
 
         await prisma.$transaction(async (tx) => {
           await tx.transaction.update({
             where: { id: transaction.id },
             data: {
               status: 'SUCCESS',
-              receiptNumber: receipt,
+              receiptNumber: receipt || Result.TransactionID,
               completedAt: new Date(),
               metadata: Result
             }
@@ -98,8 +120,7 @@ export class MpesaWebhookController {
 
           await tx.assignment.update({
             where: { id: transaction.assignmentId },
-            data: { status: 'PAID', paidAt: new Date() },
-            include: { gig: true }
+            data: { status: 'PAID', paidAt: new Date() }
           });
 
           // Fetch the assignment again with relations for notification
@@ -112,19 +133,22 @@ export class MpesaWebhookController {
             data: {
               userId: updatedAssignment.workerId,
               title: 'Payment Successful!',
-              message: `Your payment for "${updatedAssignment.gig.title}" has been processed successfully. M-Pesa Receipt: ${receipt}`,
+              message: `Your payment for "${updatedAssignment.gig.title}" has been processed successfully. M-Pesa Receipt: ${receipt || Result.TransactionID}`,
               type: 'PAID',
               linkUrl: `/worker/history`
             }
           });
         });
-        console.log(`[Webhook] B2C Success: Transaction ${transaction.id} completed.`);
+        console.log(`[Webhook] B2C Success: Transaction ${transaction.id} and Assignment ${transaction.assignmentId} updated to PAID.`);
       } else {
         await prisma.transaction.update({
           where: { id: transaction.id },
-          data: { status: 'FAILED', metadata: Result }
+          data: { 
+            status: 'FAILED', 
+            metadata: Result 
+          }
         });
-        console.warn(`[Webhook] B2C Failed: Transaction ${transaction.id} with ResultCode ${resultCode}.`);
+        console.warn(`[Webhook] B2C Failed: Transaction ${transaction.id} with ResultCode ${resultCode}. Reason: ${resultDesc}`);
       }
 
       return res.status(200).json({ ResultCode: 0, ResultDesc: "Accepted" });

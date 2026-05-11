@@ -1,4 +1,4 @@
-import { useGetEmployerHistory, useGetTransactionByAssignment } from '@/features/execution/api/execution.api';
+import { useGetEmployerHistory, useGetTransactionByAssignment, useGetTransactionStatus, useRetryPayout } from '@/features/execution/api/execution.api';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -12,17 +12,19 @@ import {
   ChevronDown, 
   ChevronUp, 
   History,
-  Briefcase
+  Briefcase,
+  RefreshCcw
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { ReceiptModal } from '@/components/execution/ReceiptModal';
 import { RatingModal } from '@/features/ratings/components/RatingModal';
 import { useCheckRating } from '@/features/ratings/api/rating.api';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
 
 export default function EmployerHistory() {
-  const { data: assignments, isLoading } = useGetEmployerHistory(['APPROVED', 'PAID', 'DISPUTED']);
+  const { data: assignments, isLoading, refetch } = useGetEmployerHistory(['APPROVED', 'PAID', 'DISPUTED']);
   const [selectedAssignmentId, setSelectedAssignmentId] = useState<string | null>(null);
   const { data: transaction } = useGetTransactionByAssignment(selectedAssignmentId || undefined);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
@@ -120,6 +122,7 @@ export default function EmployerHistory() {
               gig={gigGroup} 
               onRate={(target) => setRatingTarget(target)}
               onViewReceipt={handleViewReceipt}
+              onRefresh={refetch}
             />
           ))}
         </div>
@@ -148,7 +151,7 @@ export default function EmployerHistory() {
 /**
  * Renders a Gig header and its associated workers/assignments.
  */
-function GigHistoryGroup({ gig, onRate, onViewReceipt }: { gig: any, onRate: (t: any) => void, onViewReceipt: (id: string) => void }) {
+function GigHistoryGroup({ gig, onRate, onViewReceipt, onRefresh }: { gig: any, onRate: (t: any) => void, onViewReceipt: (id: string) => void, onRefresh: () => void }) {
   const [isExpanded, setIsExpanded] = useState(true);
 
   return (
@@ -202,6 +205,7 @@ function GigHistoryGroup({ gig, onRate, onViewReceipt }: { gig: any, onRate: (t:
                 assignment={assignment} 
                 onRate={onRate}
                 onViewReceipt={onViewReceipt}
+                onRefresh={onRefresh}
               />
             ))}
           </div>
@@ -214,10 +218,46 @@ function GigHistoryGroup({ gig, onRate, onViewReceipt }: { gig: any, onRate: (t:
 /**
  * Individual Worker row within a Gig group.
  */
-function WorkerAssignmentRow({ assignment, onRate, onViewReceipt }: { assignment: any, onRate: (t: any) => void, onViewReceipt: (id: string) => void }) {
+function WorkerAssignmentRow({ assignment, onRate, onViewReceipt, onRefresh }: { assignment: any, onRate: (t: any) => void, onViewReceipt: (id: string) => void, onRefresh: () => void }) {
   const { data: ratingStatus } = useCheckRating(assignment.id);
+  const { mutateAsync: retryPayout, isPending: isInitiating } = useRetryPayout();
+  const [pollingId, setPollingId] = useState<string | null>(null);
+
+  // Poll for status if we have a tracking ID
+  const { data: mpesaStatus } = useGetTransactionStatus(pollingId);
+
+  // Handle polling completion
+  useEffect(() => {
+    if (mpesaStatus?.status === 'SUCCESS') {
+      toast.success('Payment verified successfully!');
+      setPollingId(null);
+      onRefresh();
+    } else if (mpesaStatus?.status === 'FAILED') {
+      toast.error('Payment failed. Please try again.');
+      setPollingId(null);
+    }
+  }, [mpesaStatus, onRefresh]);
+
+  const handleRetry = async () => {
+    try {
+      const response = await retryPayout(assignment.id);
+      const conversationId = response.data?.conversationId;
+      
+      if (conversationId) {
+        setPollingId(conversationId);
+        toast.info('Verifying payout with M-Pesa...');
+      } else {
+        toast.success('Payout retry initiated successfully');
+        onRefresh();
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to retry payout');
+    }
+  };
 
   const getStatusConfig = (status: string) => {
+    if (pollingId) return { label: 'Verifying...', color: 'bg-amber-100 text-amber-800 border-amber-300 animate-pulse' };
+    
     switch(status) {
       case 'APPROVED': return { label: 'Approved', color: 'bg-green-50 text-green-700 border-green-200' };
       case 'PAID': return { label: 'Paid & Closed', color: 'bg-emerald-50 text-emerald-800 border-emerald-200' };
@@ -248,7 +288,7 @@ function WorkerAssignmentRow({ assignment, onRate, onViewReceipt }: { assignment
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        {assignment.status === 'PAID' && (
+        {assignment.status === 'PAID' && !pollingId && (
           <Button 
             onClick={() => onViewReceipt(assignment.id)}
             variant="ghost" 
@@ -258,7 +298,7 @@ function WorkerAssignmentRow({ assignment, onRate, onViewReceipt }: { assignment
           </Button>
         )}
         
-        {assignment.status === 'PAID' && (
+        {assignment.status === 'PAID' && !pollingId && (
           ratingStatus?.hasRated ? (
             <div className="bg-amber-50 text-amber-700 px-4 h-11 rounded-xl flex items-center gap-2 border border-amber-100 font-bold text-sm">
               <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
@@ -276,6 +316,22 @@ function WorkerAssignmentRow({ assignment, onRate, onViewReceipt }: { assignment
               <Star className="w-4 h-4" /> Rate Worker
             </Button>
           )
+        )}
+        
+        {assignment.status === 'APPROVED' && (
+          <Button 
+            onClick={handleRetry}
+            disabled={isInitiating || !!pollingId}
+            variant="outline" 
+            className="h-11 px-4 border-amber-200 text-amber-700 hover:bg-amber-50 font-bold gap-2 rounded-xl transition-all"
+          >
+            {isInitiating || !!pollingId ? (
+              <div className="w-4 h-4 border-2 border-amber-500/30 border-t-amber-500 rounded-full animate-spin"></div>
+            ) : (
+              <RefreshCcw className="w-4 h-4" />
+            )}
+            {pollingId ? 'Verifying...' : 'Retry B2C Payout'}
+          </Button>
         )}
         
         <Button variant="outline" asChild className="h-11 w-11 p-0 rounded-xl border-slate-200 hover:bg-white hover:border-primary-wera hover:text-primary-wera transition-all">

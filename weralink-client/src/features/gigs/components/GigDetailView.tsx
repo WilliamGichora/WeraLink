@@ -74,7 +74,7 @@ export const GigDetailView: React.FC<GigDetailViewProps> = ({ viewerRole = 'work
         }
     };
 
-    const userAssignment = gig.assignments?.find((a: any) => a.status !== 'CANCELLED');
+    const userAssignment = gig.assignments?.find((a: any) => !['CANCELLED'].includes(a.status));
     const assignmentStatus = userAssignment?.status;
 
     const getStatusDisplay = (status: string) => {
@@ -84,6 +84,7 @@ export const GigDetailView: React.FC<GigDetailViewProps> = ({ viewerRole = 'work
             case 'SUBMITTED': return { label: 'Under Review', color: 'bg-blue-100 text-blue-700 border-blue-200' };
             case 'REVISION_REQUESTED': return { label: 'Revision Needed', color: 'bg-red-100 text-red-700 border-red-200' };
             case 'CANCELLED': return { label: 'Application Cancelled', color: 'bg-red-50 text-red-700 border-red-200' };
+            case 'REJECTED': return { label: 'Application Declined', color: 'bg-red-100 text-red-800 border-red-300' };
             case 'APPROVED':
             case 'PAID': return { label: 'Gig Completed', color: 'bg-slate-100 text-slate-700 border-slate-200' };
             default: return null;
@@ -417,9 +418,13 @@ export const GigDetailView: React.FC<GigDetailViewProps> = ({ viewerRole = 'work
                                             <Button variant="outline" disabled className="flex-1 md:flex-none h-12 border-red-200 text-red-500 px-8 rounded-lg font-bold bg-red-50">
                                                 Application Cancelled
                                             </Button>
+                                        ) : assignmentStatus === 'REJECTED' ? (
+                                            <Button variant="outline" disabled className="flex-1 md:flex-none h-12 border-red-300 text-red-800 px-8 rounded-lg font-bold bg-red-100">
+                                                Application Declined
+                                            </Button>
                                         ) : (
-                                            /* Only show View Status if not yet completed and not cancelled */
-                                            !['APPROVED', 'PAID', 'CANCELLED'].includes(assignmentStatus) && (
+                                            /* Only show View Status if not yet completed and not cancelled or rejected */
+                                            !['APPROVED', 'PAID', 'CANCELLED', 'REJECTED'].includes(assignmentStatus) && (
                                                 <Button 
                                                     variant="outline"
                                                     className="flex-1 md:flex-none h-12 border-primary-wera/30 text-primary-wera px-8 rounded-lg font-bold hover:bg-primary-wera/5"

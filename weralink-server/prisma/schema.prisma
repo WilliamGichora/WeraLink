@@ -82,8 +82,9 @@ model Skill {
   name     String @unique
   category String
 
-  users UserSkill[]
-  gigs  GigSkill[]
+  users           UserSkill[]
+  gigs            GigSkill[]
+  trainingModules TrainingModule[]
 }
 
 model UserSkill {
@@ -146,6 +147,12 @@ enum WorkType {
   HYBRID
 }
 
+enum GigDifficulty {
+  BEGINNER
+  INTERMEDIATE
+  EXPERT
+}
+
 model Gig {
   id          String      @id @default(uuid())
   employerId  String      @db.Uuid
@@ -157,6 +164,7 @@ model Gig {
   payAmount   Decimal     @db.Decimal(10, 2)
   currency    String      @default("KES")
   location    String
+  difficulty  GigDifficulty @default(BEGINNER)
   status      GigStatus   @default(OPEN)
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
@@ -192,6 +200,7 @@ enum AssignmentStatus {
   DISPUTED
   FAILED
   CANCELLED
+  REJECTED
 }
 
 model Assignment {
@@ -305,11 +314,34 @@ model Dispute {
 model TrainingModule {
   id              String @id @default(uuid())
   title           String
-  durationMinutes Int
-  contentUrl      String
+  skillId         String
+  videoUrl        String?
+  docUrl          String?
   passScore       Int    @default(80)
+  isActive        Boolean @default(true)
+  createdAt       DateTime @default(now())
 
-  completions ModuleCompletion[]
+  skill           Skill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  completions     ModuleCompletion[]
+  questions       Question[]
+}
+
+model Question {
+  id              String @id @default(uuid())
+  moduleId        String
+  text            String
+  
+  module          TrainingModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  options         Option[]
+}
+
+model Option {
+  id              String @id @default(uuid())
+  questionId      String
+  text            String
+  isCorrect       Boolean @default(false)
+  
+  question        Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
 }
 
 model ModuleCompletion {

@@ -18,9 +18,19 @@ import notificationRoutes from './routes/notification.routes.js';
 import ratingRoutes from './routes/rating.routes.js';
 import analyticsRoutes from './routes/analytics.routes.js';
 import reportRoutes from './routes/report.routes.js';
+import trainingRoutes from './routes/training.routes.js';
 import { errorHandler } from './middlewares/error.middleware.js';
 import { CronService } from './services/cron.service.js';
 const app = express();
+
+// Global Request Logger for Debugging
+app.use((req, res, next) => {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+    if (req.url.includes('webhook')) {
+        console.log('Webhook Request Headers:', JSON.stringify(req.headers, null, 2));
+    }
+    next();
+});
 
 app.use(helmet());
 app.use(cors({
@@ -52,6 +62,7 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/ratings', ratingRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/training', trainingRoutes);
 
 app.get("/", (req, res) => {
     res.send("WeraLink API is active!");

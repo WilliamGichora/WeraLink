@@ -31,7 +31,7 @@ export const createGig = async (req, res) => {
         }
 
         const {
-            title, description, category, workType,
+            title, description, category, workType, difficulty,
             payAmount, currency, location, expiresAt,
             evidenceTemplate, skills,
         } = req.body;
@@ -53,6 +53,7 @@ export const createGig = async (req, res) => {
             description: description.trim(),
             category,
             workType: workType || 'REMOTE',
+            difficulty: difficulty || 'BEGINNER',
             payAmount: Number(payAmount),
             currency: currency || 'KES',
             location: location.trim(),
@@ -105,8 +106,8 @@ export const getGigs = async (req, res) => {
         const { page, limit, skip } = parsePagination(req.query);
 
         const {
-            category, workType, minPay, maxPay,
-            skills: skillFilter, search,
+            category, workType, difficulty, minPay, maxPay,
+            skills: skillFilter, search, location,
             sort = 'createdAt', order = 'desc',
         } = req.query;
 
@@ -116,12 +117,36 @@ export const getGigs = async (req, res) => {
             { OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] },
         ];
 
-        if (category && VALID_CATEGORIES.includes(category.toUpperCase())) {
-            andClauses.push({ category: category.toUpperCase() });
+        // Multi-select Categories
+        if (category && typeof category === 'string') {
+            const categories = category.split(',').map(c => c.trim().toUpperCase()).filter(c => VALID_CATEGORIES.includes(c));
+            if (categories.length > 0) {
+                andClauses.push({ category: { in: categories } });
+            }
         }
 
-        if (workType && VALID_WORK_TYPES.includes(workType.toUpperCase())) {
-            andClauses.push({ workType: workType.toUpperCase() });
+        // Multi-select Work Types
+        if (workType && typeof workType === 'string') {
+            const types = workType.split(',').map(t => t.trim().toUpperCase()).filter(t => VALID_WORK_TYPES.includes(t));
+            if (types.length > 0) {
+                andClauses.push({ workType: { in: types } });
+            }
+        }
+
+        // Multi-select Difficulty Levels
+        if (difficulty && typeof difficulty === 'string') {
+            const levels = difficulty.split(',').map(l => l.trim().toUpperCase()).filter(l => ['BEGINNER', 'INTERMEDIATE', 'EXPERT'].includes(l));
+            if (levels.length > 0) {
+                andClauses.push({ difficulty: { in: levels } });
+            }
+        }
+
+        // Location Search (Free-text)
+        if (location && typeof location === 'string') {
+            const locTerm = location.trim().slice(0, 100);
+            if (locTerm) {
+                andClauses.push({ location: { contains: locTerm, mode: 'insensitive' } });
+            }
         }
 
         if (minPay || maxPay) {
@@ -356,6 +381,7 @@ export const updateGig = async (req, res) => {
         if (description !== undefined) updateData.description = description.trim();
         if (category !== undefined) updateData.category = category;
         if (workType !== undefined) updateData.workType = workType;
+        if (difficulty !== undefined) updateData.difficulty = difficulty;
         if (payAmount !== undefined) updateData.payAmount = Number(payAmount);
         if (currency !== undefined) updateData.currency = currency;
         if (location !== undefined) updateData.location = location.trim();

@@ -26,6 +26,7 @@ router.post('/assignments/:id/submit', requireAuth, requirePermission(PERMISSION
 // Employer Review (Employers only)
 router.post('/assignments/:id/review', requireAuth, requirePermission(PERMISSIONS.EVIDENCE_REVIEW), ExecutionController.reviewWork);
 router.post('/assignments/:id/retry-payout', requireAuth, requirePermission(PERMISSIONS.EVIDENCE_REVIEW), ExecutionController.retryPayout);
+router.post('/assignments/:id/reject', requireAuth, requirePermission(PERMISSIONS.GIG_MANAGE), ExecutionController.rejectApplication);
 router.get('/assignments/employer/reviews', requireAuth, requirePermission(PERMISSIONS.EVIDENCE_REVIEW), ExecutionController.getEmployerPendingReviews);
 router.get('/assignments/employer/history', requireAuth, requireRole([ROLES.EMPLOYER]), ExecutionController.getEmployerHistory);
 

@@ -17,9 +17,13 @@ export const {
     DARAJA_CONSUMER_SECRET,
     DARAJA_PASSKEY,
     APP_BASE_URL,
+    DARAJA_SECURITY_CREDENTIAL,
+    DARAJA_INITIATOR_NAME,
+    DARAJA_B2C_PARTY_A
 } = process.env
 
 export const USE_MOCK_MPESA = false;
+export const ENABLE_DEMO_CHEATSHEET = process.env.ENABLE_DEMO_CHEATSHEET === 'true';
 
 export const isDevelopment = NODE_ENV === 'development'
 export const isProduction = NODE_ENV === 'production'

@@ -18,6 +18,7 @@ export const VALID_CATEGORIES = [
 ];
 
 export const VALID_WORK_TYPES = ['REMOTE', 'ON_SITE', 'HYBRID'];
+export const VALID_DIFFICULTIES = ['BEGINNER', 'INTERMEDIATE', 'EXPERT'];
 
 export const VALID_EVIDENCE_TYPES = ['FILE', 'LINK', 'TEXT', 'IMAGE', 'VIDEO_LINK'];
 
@@ -118,7 +119,7 @@ export function validateEvidenceTemplate(template) {
 export function validateGigInput(body, isUpdate = false) {
     const errors = [];
     const {
-        title, description, category, workType,
+        title, description, category, workType, difficulty,
         payAmount, location, expiresAt, evidenceTemplate, skills,
     } = body;
 
@@ -161,6 +162,10 @@ export function validateGigInput(body, isUpdate = false) {
 
     if (workType !== undefined && !VALID_WORK_TYPES.includes(workType)) {
         errors.push({ field: 'workType', message: `Work type must be one of: ${VALID_WORK_TYPES.join(', ')}` });
+    }
+
+    if (difficulty !== undefined && !VALID_DIFFICULTIES.includes(difficulty)) {
+        errors.push({ field: 'difficulty', message: `Difficulty must be one of: ${VALID_DIFFICULTIES.join(', ')}` });
     }
 
     if (payAmount !== undefined) {

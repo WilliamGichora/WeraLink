@@ -6,6 +6,9 @@ import {
   DARAJA_CONSUMER_KEY,
   DARAJA_CONSUMER_SECRET,
   DARAJA_PASSKEY,
+  DARAJA_SECURITY_CREDENTIAL,
+  DARAJA_INITIATOR_NAME,
+  DARAJA_B2C_PARTY_A,
   USE_MOCK_MPESA,
   isProduction
 } from '../config/env.js';
@@ -68,6 +71,7 @@ export class MpesaService {
     const formattedPhone = phoneNumber.replace(/[^0-9]/g, '').replace(/^0/, '254');
 
     try {
+      console.log(`[MpesaService] Triggering STK Push for Assignment ${assignmentId}...`);
       const response = await axios.post(`${BASE_URL}/mpesa/stkpush/v1/processrequest`, {
         BusinessShortCode: DARAJA_SHORTCODE,
         Password: password,
@@ -83,6 +87,8 @@ export class MpesaService {
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
+
+      console.log(`[MpesaService] STK Push Response:`, JSON.stringify(response.data, null, 2));
 
       // Record transaction intent (Upsert to handle retries)
       await prisma.transaction.upsert({
@@ -117,22 +123,29 @@ export class MpesaService {
    */
   static async triggerB2CPayout(assignmentId, phoneNumber, amount) {
     if (USE_MOCK_MPESA) {
+      console.log(`[MpesaService] MOCK B2C Payout enabled. Simulating for Assignment ${assignmentId}...`);
       return this.mockB2CPayout(assignmentId, phoneNumber, amount);
     }
 
     const token = await this.getAuthToken();
     const callbackUrl = `${process.env.APP_BASE_URL}/api/webhooks/mpesa/b2c`;
-    // Aggressively strip non-numeric characters (like +) and handle leading 0
     const formattedPhone = phoneNumber.replace(/[^0-9]/g, '').replace(/^0/, '254');
 
     try {
-      const response = await axios.post(`${BASE_URL}/mpesa/b2c/v3/paymentrequest`, {
+      console.log(`[MpesaService] Triggering B2C Payout for Assignment ${assignmentId} to ${formattedPhone} (Amount: ${amount})...`);
+      console.log(`[MpesaService] Callback URL: ${callbackUrl}`);
+
+      console.log(`[MpesaService] Using Initiator: ${DARAJA_INITIATOR_NAME || 'testapi'}`);
+      console.log(`[MpesaService] Security Credential (first 10 chars): ${DARAJA_SECURITY_CREDENTIAL?.substring(0, 10)}...`);
+      console.log(`[MpesaService] Party A (Shortcode): ${DARAJA_B2C_PARTY_A}`);
+
+      const response = await axios.post(`${BASE_URL}/mpesa/b2c/v1/paymentrequest`, {
         OriginatorConversationID: crypto.randomUUID(),
-        InitiatorName: process.env.DARAJA_INITIATOR_NAME || 'testapi',
-        SecurityCredential: process.env.DARAJA_SECURITY_CREDENTIAL || 'mock-cred',
+        InitiatorName: DARAJA_INITIATOR_NAME || 'testapi',
+        SecurityCredential: DARAJA_SECURITY_CREDENTIAL,
         CommandID: 'BusinessPayment',
         Amount: amount,
-        PartyA: DARAJA_SHORTCODE,
+        PartyA: DARAJA_B2C_PARTY_A,
         PartyB: formattedPhone,
         Remarks: `WeraLink Payout for Assignment ${assignmentId.substring(0, 8)}`,
         QueueTimeOutURL: callbackUrl,
@@ -141,6 +154,8 @@ export class MpesaService {
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
+
+      console.log(`[MpesaService] B2C Payout Response:`, JSON.stringify(response.data, null, 2));
 
       // Record transaction intent (Upsert to handle retries safely)
       await prisma.transaction.upsert({
@@ -245,6 +260,27 @@ export class MpesaService {
         retryCount: { increment: 1 }
       }
     });
+
+    // Simulate the async webhook callback after 3 seconds
+    setTimeout(async () => {
+      try {
+        const localWebhookUrl = `http://localhost:${process.env.PORT || 5500}/api/webhooks/mpesa/b2c`;
+        console.log(`[Mock M-Pesa] Simulating B2C Webhook to ${localWebhookUrl}...`);
+        await axios.post(localWebhookUrl, {
+          Result: {
+            ResultType: 0,
+            ResultCode: 0,
+            ResultDesc: "The service request is processed successfully.",
+            OriginatorConversationID: `O_${mockConversationId}`,
+            ConversationID: mockConversationId,
+            TransactionID: `MOCK_B2C_${Date.now()}`
+          }
+        });
+        console.log(`[Mock M-Pesa] Simulated B2C Webhook Successful!`);
+      } catch (err) {
+        console.error('[Mock M-Pesa] Failed to simulate B2C Webhook:', err.message);
+      }
+    }, 3000);
 
     return {
       ConversationID: mockConversationId,

@@ -261,7 +261,7 @@ export const getRecommendedGigs = async (req, res) => {
  * service expects. Keeps DB-specific logic out of pure functions.
  */
 function hydrateWorkerForScoring(worker) {
-    const activeStatuses = new Set(['OFFERED', 'ACCEPTED']);
+    const activeStatuses = new Set(['ACCEPTED', 'SUBMITTED', 'REVISION_REQUESTED']);
     const activeCount = (worker.assignments || []).filter(a => activeStatuses.has(a.status)).length;
 
     return {

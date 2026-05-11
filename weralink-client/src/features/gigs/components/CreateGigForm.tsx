@@ -51,6 +51,7 @@ export const CreateGigForm: React.FC<CreateGigFormProps> = ({ initialData, isEdi
         description: initialData.description || '',
         category: initialData.category || 'TRANSLATION',
         workType: initialData.workType || 'REMOTE',
+        difficulty: initialData.difficulty || 'BEGINNER',
         location: initialData.location || '',
         payAmount: initialData.payAmount ? Number(initialData.payAmount) : undefined,
         currency: initialData.currency || 'KES',
@@ -64,6 +65,7 @@ export const CreateGigForm: React.FC<CreateGigFormProps> = ({ initialData, isEdi
       description: '',
       category: 'TRANSLATION',
       workType: 'REMOTE',
+      difficulty: 'BEGINNER',
       location: '',
       payAmount: undefined as unknown as number,
       currency: 'KES',
@@ -91,7 +93,7 @@ export const CreateGigForm: React.FC<CreateGigFormProps> = ({ initialData, isEdi
   const nextStep = async () => {
     let valid = false;
     if (currentStep === 0) {
-      valid = await trigger(['title', 'description', 'category', 'workType', 'location']);
+      valid = await trigger(['title', 'description', 'category', 'workType', 'difficulty', 'location']);
     } else if (currentStep === 1) {
       valid = await trigger(['skillIds']);
     } else if (currentStep === 2) {
@@ -261,17 +263,37 @@ export const CreateGigForm: React.FC<CreateGigFormProps> = ({ initialData, isEdi
                   </div>
                 </div>
 
-                <div className="space-y-3 mt-8">
-                  <Label htmlFor="location" className="text-accent-dark font-bold text-base">
-                    {watchAll.workType === 'REMOTE' ? 'Location (Worker Region / Virtual)' : 'Exact Location'} <span className="text-primary-wera">*</span>
-                  </Label>
-                  <Input
-                    id="location"
-                    placeholder={watchAll.workType === 'REMOTE' ? 'e.g. Kenya, Global, or Virtual' : 'e.g. Westlands, Nairobi'}
-                    className="bg-slate-50 border-primary-wera/10 text-text-main focus:bg-white focus:border-primary-wera focus:ring-2 focus:ring-primary-wera/20 rounded-xl h-12 text-base"
-                    {...register('location')}
-                  />
-                  {errors.location && <p className="text-red-500 text-sm font-semibold mt-1">{errors.location.message as string}</p>}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
+                  <div className="space-y-3">
+                    <Label htmlFor="difficulty" className="text-accent-dark font-bold text-base">Skill Level Required <span className="text-primary-wera">*</span></Label>
+                    <Select
+                      value={watchAll.difficulty}
+                      onValueChange={(val: any) => setValue('difficulty', val, { shouldValidate: true })}
+                    >
+                      <SelectTrigger className="bg-slate-50 border-primary-wera/10 text-text-main focus:ring-primary-wera/20 focus:border-primary-wera h-12 rounded-xl">
+                        <SelectValue placeholder="Select difficulty" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white border-primary-wera/10 text-text-main">
+                        <SelectItem value="BEGINNER">Beginner (No experience)</SelectItem>
+                        <SelectItem value="INTERMEDIATE">Intermediate (Verified skills)</SelectItem>
+                        <SelectItem value="EXPERT">Expert (Highly specialized)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[10px] text-text-main/50 font-medium">Difficulty helps workers understand if they are qualified for this task.</p>
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label htmlFor="location" className="text-accent-dark font-bold text-base">
+                      {watchAll.workType === 'REMOTE' ? 'Location (Worker Region / Virtual)' : 'Exact Location'} <span className="text-primary-wera">*</span>
+                    </Label>
+                    <Input
+                      id="location"
+                      placeholder={watchAll.workType === 'REMOTE' ? 'e.g. Kenya, Global, or Virtual' : 'e.g. Westlands, Nairobi'}
+                      className="bg-slate-50 border-primary-wera/10 text-text-main focus:bg-white focus:border-primary-wera focus:ring-2 focus:ring-primary-wera/20 rounded-xl h-12 text-base"
+                      {...register('location')}
+                    />
+                    {errors.location && <p className="text-red-500 text-sm font-semibold mt-1">{errors.location.message as string}</p>}
+                  </div>
                 </div>
               </div>
             )}
@@ -475,10 +497,13 @@ export const CreateGigForm: React.FC<CreateGigFormProps> = ({ initialData, isEdi
                       <div className="flex-1">
                         <h2 className="text-2xl md:text-3xl font-bold text-accent-dark leading-tight">{watchAll.title}</h2>
                         <div className="flex items-center gap-3 mt-4">
-                          <Badge variant="outline" className="text-primary-wera border-primary-wera/30 bg-white font-bold">{watchAll.category.replace('_', ' ')}</Badge>
-                          <Badge variant="outline" className="text-text-main border-slate-300 bg-white font-bold">
-                            {watchAll.workType === 'REMOTE' ? '🌐 Remote' : '📍 ' + (watchAll.location || 'On-Site')}
-                          </Badge>
+                           <Badge variant="outline" className="text-primary-wera border-primary-wera/30 bg-white font-bold">{watchAll.category.replace('_', ' ')}</Badge>
+                           <Badge variant="outline" className="text-blue-600 border-blue-200 bg-blue-50 font-bold">
+                             {watchAll.difficulty}
+                           </Badge>
+                           <Badge variant="outline" className="text-text-main border-slate-300 bg-white font-bold">
+                             {watchAll.workType === 'REMOTE' ? '🌐 Remote' : '📍 ' + (watchAll.location || 'On-Site')}
+                           </Badge>
                         </div>
                       </div>
                       <div className="bg-white border border-primary-wera/10 px-6 py-4 rounded-2xl text-right shadow-sm border-b-4 border-b-primary-wera/20 min-w-[150px]">

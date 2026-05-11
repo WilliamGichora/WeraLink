@@ -99,9 +99,7 @@ export const NAV_CONFIG: NavConfigMap = {
         {
           title: "Growth",
           items: [
-            { title: "Skill Assessments", href: "/worker/learning/assessments", description: "Take quizzes to earn new badges", icon: Award },
-            { title: "Training Modules", href: "/worker/learning/modules", description: "Short micro-courses to upskill", icon: GraduationCap },
-            { title: "My Badges", href: "/worker/learning/badges", description: "View your earned achievements", icon: Medal },
+            { title: "Learning Hub", href: "/worker/learning-hub", description: "Verify skills, take modules, and earn badges", icon: Award },
           ]
         }
       ]

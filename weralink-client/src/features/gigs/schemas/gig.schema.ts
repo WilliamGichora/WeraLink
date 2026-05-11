@@ -10,6 +10,7 @@ export const GigCategorySchema = z.enum([
 ]);
 
 export const WorkTypeSchema = z.enum(['REMOTE', 'ON_SITE', 'HYBRID']);
+export const GigDifficultySchema = z.enum(['BEGINNER', 'INTERMEDIATE', 'EXPERT']);
 
 export const EvidenceTypeSchema = z.enum(['FILE', 'LINK', 'TEXT', 'IMAGE', 'VIDEO_LINK']);
 
@@ -28,6 +29,7 @@ export const CreateGigSchema = z.object({
   description: z.string().min(50, 'Description must be at least 50 characters').max(2000),
   category: GigCategorySchema,
   workType: WorkTypeSchema.default('REMOTE'),
+  difficulty: GigDifficultySchema.default('BEGINNER'),
   location: z.string().min(1, 'Location is required').max(200),
   payAmount: z.number().positive('Pay amount must be positive'),
   currency: z.string().min(3).max(3).default('KES'),

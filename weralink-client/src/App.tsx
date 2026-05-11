@@ -10,6 +10,8 @@ import MyApplications from "./pages/worker/MyApplications";
 import ActiveAssignments from "./pages/worker/ActiveAssignments";
 import CompletedGigs from "./pages/worker/CompletedGigs";
 import {SubmitEvidence} from "./pages/worker/SubmitEvidence";
+import LearningHubPage from "./pages/worker/LearningHub";
+import ModuleViewPage from "./pages/worker/ModuleView";
 import EmployerDashboard from "./pages/employer/Dashboard";
 import CreateGigPage from "./pages/employer/CreateGig";
 import ManageGigsPage from "./pages/employer/ManageGigs";
@@ -74,6 +76,8 @@ function App() {
                <Route path="profile/ratings" element={<Suspense fallback={<PageLoader />}><WorkerRatings /></Suspense>} />
                <Route path="analytics" element={<Suspense fallback={<PageLoader />}><WorkerAnalytics /></Suspense>} />
                <Route path="reports" element={<Suspense fallback={<PageLoader />}><WorkerReports /></Suspense>} />
+               <Route path="learning-hub" element={<LearningHubPage />} />
+               <Route path="learning-hub/:id" element={<ModuleViewPage />} />
              </Route>
            </Route>
  

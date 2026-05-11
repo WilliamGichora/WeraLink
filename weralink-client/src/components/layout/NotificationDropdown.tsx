@@ -12,7 +12,6 @@ import {
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
@@ -111,13 +110,13 @@ export const NotificationDropdown: React.FC = () => {
                   onClick={() => handleNotificationClick(notification)}
                   className={cn(
                     "flex items-start gap-4 p-4 text-left hover:bg-white/5 transition-colors group relative border-b border-white/5 last:border-0",
-                    !notification.isRead && "bg-white/[0.02]"
+                    !notification.isRead && "bg-white/2"
                   )}
                 >
                   {!notification.isRead && (
                     <div className="absolute left-1 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary-wera rounded-full" />
                   )}
-                  <div className="mt-1 flex-shrink-0 p-2 rounded-full bg-black/20 group-hover:bg-black/40 transition-colors">
+                  <div className="mt-1 shrink-0 p-2 rounded-full bg-black/20 group-hover:bg-black/40 transition-colors">
                     {getIcon(notification.type)}
                   </div>
                   <div className="flex-1 min-w-0">

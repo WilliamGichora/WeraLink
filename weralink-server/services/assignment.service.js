@@ -134,7 +134,7 @@ export class AssignmentService {
       ratingsRecv: worker.ratingsRecv || [],
       badgeCount: worker.badges?.length || 0,
       passedModuleCount: worker.completions?.length || 0,
-      activeAssignmentCount: (worker.assignments || []).filter(wa => ['OFFERED', 'ACCEPTED'].includes(wa.status)).length,
+      activeAssignmentCount: (worker.assignments || []).filter(wa => ['ACCEPTED', 'SUBMITTED', 'REVISION_REQUESTED'].includes(wa.status)).length,
     };
 
     return scoreWorkerForGig(hydratedWorker, gig);
@@ -175,7 +175,48 @@ export class AssignmentService {
   }
 
   /**
-   * Called by the Worker when submitting evidence
+   * Called when an Employer rejects a worker's application.
+   */
+  static async rejectApplication(assignmentId, employerId, reason = null) {
+    return await prisma.$transaction(async (tx) => {
+      const assignment = await tx.assignment.findUnique({
+        where: { id: assignmentId },
+        include: { gig: true }
+      });
+
+      if (!assignment || assignment.status !== 'OFFERED') {
+        throw new Error('Assignment not found or not in a state that can be rejected');
+      }
+
+      if (assignment.gig.employerId !== employerId) {
+        throw new Error('Unauthorized: You are not the employer for this gig');
+      }
+
+      // Update status to REJECTED
+      const updated = await tx.assignment.update({
+        where: { id: assignmentId },
+        data: {
+          status: 'REJECTED'
+        }
+      });
+
+      // Notify the worker
+      await tx.notification.create({
+        data: {
+          userId: assignment.workerId,
+          title: 'Application Update',
+          message: `Your application for "${assignment.gig.title}" has been declined. ${reason ? `Reason: ${reason}` : 'Thank you for your interest.'}`,
+          type: 'REJECTED',
+          linkUrl: `/worker/applications`
+        }
+      });
+
+      return updated;
+    });
+  }
+
+  /**
+   * Called when Worker submits work.
    */
   static async submitWork(assignmentId, workerId, evidenceData = [], completionNotes = null) {
     return await prisma.$transaction(async (tx) => {
@@ -390,7 +431,7 @@ export class AssignmentService {
         ratingsRecv: worker.ratingsRecv || [],
         badgeCount: worker.badges?.length || 0,
         passedModuleCount: worker.completions?.length || 0,
-        activeAssignmentCount: (worker.assignments || []).filter(wa => ['OFFERED', 'ACCEPTED'].includes(wa.status)).length,
+        activeAssignmentCount: (worker.assignments || []).filter(wa => ['ACCEPTED', 'SUBMITTED', 'REVISION_REQUESTED'].includes(wa.status)).length,
       };
 
       const matchData = scoreWorkerForGig(hydratedWorker, gig);
@@ -411,8 +452,11 @@ export class AssignmentService {
 
   /**
    * Retrieves ALL applicants for ALL gigs owned by an employer.
+   * Supports robust filtering and search.
    */
-  static async getEmployerApplicants(employerId) {
+  static async getEmployerApplicants(employerId, filters = {}) {
+    const { search, minScore, maxScore, sortBy = 'score', order = 'desc' } = filters;
+
     const gigs = await prisma.gig.findMany({
       where: { employerId },
       include: {
@@ -422,8 +466,21 @@ export class AssignmentService {
 
     const gigIds = gigs.map(g => g.id);
 
+    // Build where clause for assignments
+    const where = { 
+      gigId: { in: gigIds }, 
+      status: 'OFFERED' 
+    };
+
+    if (search) {
+      where.OR = [
+        { worker: { name: { contains: search, mode: 'insensitive' } } },
+        { gig: { title: { contains: search, mode: 'insensitive' } } }
+      ];
+    }
+
     const assignments = await prisma.assignment.findMany({
-      where: { gigId: { in: gigIds }, status: 'OFFERED' },
+      where,
       include: {
         gig: { select: { id: true, title: true, category: true, payAmount: true, currency: true } },
         worker: {
@@ -450,9 +507,29 @@ export class AssignmentService {
       orderBy: { offeredAt: 'desc' }
     });
 
-    return assignments.map(a => {
+    let applicants = assignments.map(a => {
       const gig = gigs.find(g => g.id === a.gigId);
-      const matchData = this._calculateMatch(a.worker, gig);
+      
+      // Re-hydrate worker for scoring (same logic as getGigApplicants)
+      const worker = a.worker;
+      const hydratedWorker = {
+        id: worker.id,
+        name: worker.name,
+        profile: worker.profile,
+        skills: worker.skills || [],
+        assignments: (worker.assignments || []).map(wa => ({
+          status: wa.status,
+          gigCategory: wa.gig?.category || null,
+          offeredAt: wa.offeredAt,
+          acceptedAt: wa.acceptedAt,
+        })),
+        ratingsRecv: worker.ratingsRecv || [],
+        badgeCount: worker.badges?.length || 0,
+        passedModuleCount: worker.completions?.length || 0,
+        activeAssignmentCount: (worker.assignments || []).filter(wa => ['ACCEPTED', 'SUBMITTED', 'REVISION_REQUESTED'].includes(wa.status)).length,
+      };
+
+      const matchData = scoreWorkerForGig(hydratedWorker, gig);
       return {
         ...a,
         matchScore: matchData.matchScore,
@@ -462,6 +539,28 @@ export class AssignmentService {
         missingSkills: matchData.missingSkills
       };
     });
+
+    // Score Filtering
+    if (minScore !== undefined) {
+      applicants = applicants.filter(a => a.matchScore >= minScore);
+    }
+    if (maxScore !== undefined) {
+      applicants = applicants.filter(a => a.matchScore <= maxScore);
+    }
+
+    // Sorting
+    if (sortBy === 'score') {
+      applicants.sort((a, b) => order === 'desc' ? b.matchScore - a.matchScore : a.matchScore - b.matchScore);
+    } else {
+      // offeredAt is already handled by orderBy in findMany, but we might want to override
+      applicants.sort((a, b) => {
+        const dateA = new Date(a.offeredAt).getTime();
+        const dateB = new Date(b.offeredAt).getTime();
+        return order === 'desc' ? dateB - dateA : dateA - dateB;
+      });
+    }
+
+    return applicants;
   }
 
   /**

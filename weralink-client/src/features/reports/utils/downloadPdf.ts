@@ -1,11 +1,6 @@
 import html2canvas from 'html2canvas-pro';
 import jsPDF from 'jspdf';
 
-/**
- * Captures a DOM element and generates a downloadable PDF.
- * Reuses the proven pattern from ReceiptModal.
- * Uses HSL-safe rendering (no oklch) — all report components must use hex/hsl.
- */
 export async function downloadReportAsPdf(
   element: HTMLElement,
   filename: string = 'WeraLink-Report'

@@ -61,15 +61,15 @@ export class MpesaController {
       }
 
       // Layer 2: If still PENDING locally, check if we should query Safaricom
-      // Threshold: 15 seconds since initiation
+      // ONLY for STK Push (DEPOSIT_TO_ESCROW). B2C has a different query API or should rely on webhooks.
       const elapsedSeconds = (Date.now() - new Date(transaction.initiatedAt).getTime()) / 1000;
       
-      if (elapsedSeconds > 15) {
+      if (transaction.type === 'DEPOSIT_TO_ESCROW' && elapsedSeconds > 15) {
         console.log(`[STK Query] Still pending after ${Math.floor(elapsedSeconds)}s. Querying Safaricom for ${checkoutRequestId}...`);
         
         try {
           const safaricomStatus = await MpesaService.querySTKPushStatus(checkoutRequestId);
-         
+          
           if (safaricomStatus.ResultCode === "0") {
             console.log(`[STK Query] Safaricom confirms SUCCESS for ${checkoutRequestId}. Syncing state...`);
             

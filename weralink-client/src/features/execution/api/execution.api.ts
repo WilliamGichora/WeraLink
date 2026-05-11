@@ -149,6 +149,22 @@ export const useRetryPayout = () => {
 };
 
 /**
+ * Mutation for Employer to reject a worker's application
+ */
+export const useRejectApplication = () => {
+  return useMutation({
+    mutationFn: async ({ assignmentId, reason }: { assignmentId: string, reason?: string }) => {
+      try {
+        const response = await api.post(`/assignments/${assignmentId}/reject`, { reason });
+        return response.data;
+      } catch (error) {
+        throw new Error(extractErrorMessage(error));
+      }
+    }
+  });
+};
+
+/**
  * Query to get all applicants for a specific gig (Employer view)
  */
 export const useGetGigApplicants = (gigId: string | undefined) => {
@@ -170,12 +186,12 @@ export const useGetGigApplicants = (gigId: string | undefined) => {
 /**
  * Query to get all pending applications for an employer (Global view)
  */
-export const useGetEmployerApplicants = () => {
+export const useGetEmployerApplicants = (params: any = {}) => {
   return useQuery({
-    queryKey: ['employerApplicants'],
+    queryKey: ['employerApplicants', params],
     queryFn: async () => {
       try {
-        const response = await api.get('/assignments/employer');
+        const response = await api.get('/assignments/employer', { params });
         return response.data.data;
       } catch (error) {
         throw new Error(extractErrorMessage(error));

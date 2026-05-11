@@ -1,10 +1,12 @@
-import { useState } from 'react';
-import { Search, Map, RefreshCw } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Search, Map, RefreshCw, Briefcase, TrendingUp, CheckCircle2, SlidersHorizontal } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { MarketplaceFilterSidebar } from '@/features/gigs/components/MarketplaceFilterSidebar';
 import { GigCard } from '@/features/gigs/components/GigCard';
 import { gigHooks } from '@/features/gigs/api/gig.api';
+import { useDebounce } from '@/hooks/useDebounce';
+import { useGetWorkerAssignments } from '@/features/execution/api/execution.api';
 
 export default function MarketplacePage() {
     const [filters, setFilters] = useState<any>({});
@@ -16,87 +18,158 @@ export default function MarketplacePage() {
         isLoading,
         fetchNextPage,
         hasNextPage,
-        isFetchingNextPage
+        isFetchingNextPage,
+        refetch
     } = gigHooks.useGetMarketplaceGigs(filters);
 
+    const { data: assignments } = useGetWorkerAssignments();
+
     const filteredGigs = data ? data.pages.flatMap((page: any) => page.gigs) : [];
+    const activeGigsCount = data?.pages[0]?.meta?.totalGigs || filteredGigs.length;
+    const myApplicationsCount = assignments?.filter((assignment: any) => assignment.status === 'APPLIED')?.length || 0;
+
+    const debouncedSearch = useDebounce(searchQuery, 500);
+
+    useEffect(() => {
+        setFilters((prev: any) => ({ ...prev, search: debouncedSearch }));
+    }, [debouncedSearch]);
 
     const handleFilterChange = (newFilters: any) => {
-        setFilters((prev: any) => {
-             if (newFilters.category === 'ALL') {
-                 const { category, ...rest } = prev;
-                 return rest;
-             }
-             return { ...prev, ...newFilters };
-        });
+        setFilters((prev: any) => ({
+            ...prev,
+            ...newFilters,
+            // Only keep filters that are in newFilters or are search
+            search: prev.search
+        }));
     };
 
-    const handleSearch = () => {
-        setFilters((prev: any) => ({ ...prev, search: searchQuery }));
+    const clearFilters = () => {
+        setSearchQuery('');
+        setFilters({});
     };
 
     return (
-        <div className="min-h-screen bg-background-light pb-16 font-sans text-text-main">
-            {/* Search Hero Section */}
-            <div className="max-w-7xl mx-auto px-4 md:px-8 pt-12 pb-8">
-                <div className="text-center md:text-left mb-10">
-                    <h1 className="text-3xl md:text-4xl font-bold text-accent-dark mb-2">Find your next micro-gig</h1>
-                    <p className="text-text-main/70 text-lg mb-8">Short tasks, instant pay. Start earning today.</p>
-                    
-                    <div className="flex flex-col md:flex-row gap-4 max-w-4xl mx-auto md:mx-0">
-                        <div className="relative grow">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-main/40" />
-                            <Input 
-                                className="pl-12 h-14 rounded-xl border-2 border-primary-wera/10 bg-white text-text-main focus:border-primary-wera focus:ring-0 text-base shadow-sm"
-                                placeholder="Search for micro-gigs (e.g., 'delivery', 'typing')..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(); }}
-                            />
+        <div className="min-h-screen bg-background-light pb-16 font-sans text-text-main animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {/* Premium Hero Section */}
+            <div className="bg-accent-dark text-white relative overflow-hidden">
+                <div className="absolute inset-0 pointer-events-none">
+                    <div className="absolute -right-20 -top-20 w-96 h-96 bg-primary-wera/20 rounded-full blur-3xl" />
+                    <div className="absolute left-1/4 bottom-0 w-72 h-72 bg-primary-wera/10 rounded-full blur-3xl" />
+                </div>
+
+                <div className="max-w-7xl mx-auto px-4 md:px-8 pt-12 pb-16 relative z-10">
+                    <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-6">
+                        <div>
+                            <div className="flex items-center gap-2 mb-3">
+                                <div className="bg-primary-wera/20 p-2 rounded-lg">
+                                    <Briefcase className="w-5 h-5 text-primary-wera" />
+                                </div>
+                                <span className="text-xs font-bold tracking-widest uppercase text-primary-wera">
+                                    Gig Economy
+                                </span>
+                            </div>
+                            <h1 className="text-3xl md:text-4xl font-bold mb-2">Worker Marketplace</h1>
+                            <p className="text-gray-400 text-lg max-w-xl">
+                                Discover high-performance micro-gigs, complete tasks instantly, and build your reputation on WeraLink.
+                            </p>
                         </div>
-                        <Button 
-                            onClick={handleSearch}
-                            className="h-14 bg-primary-wera hover:bg-primary-dark text-white px-10 rounded-xl font-bold shadow-lg shadow-primary-wera/20 transition-all active:scale-95"
-                        >
-                            Search Gigs
-                        </Button>
+
+                        {/* Marketplace Stats */}
+                        <div className="flex gap-4">
+                            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl px-4 py-3 min-w-[120px]">
+                                <p className="text-xs text-gray-400 font-medium mb-1 flex items-center gap-1">
+                                    <TrendingUp className="w-3 h-3 text-primary-wera" /> Active Gigs
+                                </p>
+                                <p className="text-2xl font-bold text-white">{activeGigsCount}</p>
+                            </div>
+                            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl px-4 py-3 min-w-[120px]">
+                                <p className="text-xs text-gray-400 font-medium mb-1 flex items-center gap-1">
+                                    <CheckCircle2 className="w-3 h-3 text-green-400" /> My Total Applications
+                                </p>
+                                <p className="text-2xl font-bold text-green-400">{myApplicationsCount}</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
             {/* Main Content */}
-            <div className="max-w-7xl mx-auto px-4 md:px-8">
-                <div className="flex flex-col lg:flex-row gap-8">
-                    {/* Mobile Filter Toggle */}
-                    <div className="lg:hidden w-full flex justify-end">
-                        <Button 
-                            onClick={() => setIsMobileFilterOpen(!isMobileFilterOpen)}
-                            variant="outline"
-                            className="bg-white border-primary-wera/20 text-text-main h-12 w-full"
-                        >
-                            {isMobileFilterOpen ? 'Hide Filters' : 'Show Filters'}
-                        </Button>
-                    </div>
-
-                    {/* Sidebar */}
-                    <div className={`w-full lg:w-64 shrink-0 ${isMobileFilterOpen ? 'block' : 'hidden lg:block'}`}>
-                        <MarketplaceFilterSidebar 
-                            onFilterChange={handleFilterChange} 
-                            onClose={() => setIsMobileFilterOpen(false)}
+            <div className="max-w-7xl mx-auto px-4 md:px-8 -mt-8 relative z-20">
+                
+                {/* Search & Mobile Filter Toggle */}
+                <div className="bg-white border border-slate-200 rounded-2xl p-3 flex flex-col md:flex-row gap-4 shadow-xl mb-10 items-center justify-between">
+                    <div className="relative w-full md:w-[500px]">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                        <Input 
+                            type="text"
+                            placeholder="Search by title, description or employer..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full pl-12 pr-4 h-12 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-primary-wera/30 text-base"
                         />
                     </div>
 
-                    {/* Grid */}
+                    <div className="flex items-center gap-3 w-full md:w-auto">
+                        <Button 
+                            variant="outline" 
+                            className="lg:hidden grow h-12 rounded-xl border-slate-200 flex items-center gap-2"
+                            onClick={() => setIsMobileFilterOpen(true)}
+                        >
+                            <SlidersHorizontal className="w-4 h-4" /> Filters
+                        </Button>
+                        <Button 
+                            variant="ghost" 
+                            size="icon"
+                            className="h-12 w-12 rounded-xl text-slate-400 hover:text-primary-wera"
+                            onClick={() => refetch()}
+                        >
+                            <RefreshCw className="w-5 h-5" />
+                        </Button>
+                    </div>
+                </div>
+
+                <div className="flex flex-col lg:flex-row gap-8">
+                    {/* Sidebar - Desktop */}
+                    <aside className="hidden lg:block w-72 shrink-0">
+                        <MarketplaceFilterSidebar 
+                            onFilterChange={handleFilterChange} 
+                            initialFilters={filters}
+                        />
+                    </aside>
+
+                    {/* Mobile Sidebar Overlay */}
+                    {isMobileFilterOpen && (
+                        <div className="fixed inset-0 z-50 lg:hidden">
+                            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsMobileFilterOpen(false)} />
+                            <div className="absolute left-0 top-0 bottom-0 w-[80%] max-w-sm bg-white animate-in slide-in-from-left duration-300">
+                                <MarketplaceFilterSidebar 
+                                    onFilterChange={handleFilterChange} 
+                                    onClose={() => setIsMobileFilterOpen(false)}
+                                    initialFilters={filters}
+                                />
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Main Grid */}
                     <div className="grow">
-                        <div className="bg-white border border-primary-wera/10 rounded-xl p-4 flex justify-between items-center mb-6 shadow-sm">
-                            <span className="text-text-main font-semibold">Showing {filteredGigs.length} gigs</span>
-                            <span className="text-sm text-text-main/60">Sorted by: <strong className="text-text-main">Newest</strong></span>
+                        <div className="flex justify-between items-center mb-6">
+                            <h2 className="text-xl font-bold text-accent-dark flex items-center gap-2">
+                                Available Gigs 
+                                <span className="text-sm font-medium text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
+                                    {filteredGigs.length}
+                                </span>
+                            </h2>
+                            <div className="flex items-center gap-2 text-sm text-slate-500">
+                                <span>Sorted by:</span>
+                                <span className="font-bold text-accent-dark">Newest First</span>
+                            </div>
                         </div>
 
                         {isLoading ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {[1,2,3,4].map(n => (
-                                    <div key={n} className="bg-white rounded-2xl h-64 border border-primary-wera/5 animate-pulse"></div>
+                                    <div key={n} className="bg-white rounded-3xl h-64 border border-slate-100 animate-pulse shadow-sm" />
                                 ))}
                             </div>
                         ) : filteredGigs.length > 0 ? (
@@ -106,30 +179,32 @@ export default function MarketplacePage() {
                                 ))}
                             </div>
                         ) : (
-                            <div className="text-center p-16 bg-white border border-primary-wera/10 rounded-2xl shadow-sm">
-                                <Search className="w-12 h-12 text-primary-wera/40 mx-auto mb-4" />
-                                <h3 className="text-xl font-bold text-accent-dark mb-2">No gigs found</h3>
-                                <p className="text-text-main/70 max-w-md mx-auto">We couldn't find any gigs matching your current filters and search query. Try adjusting them.</p>
+                            <div className="text-center p-20 bg-white border border-dashed border-slate-200 rounded-[32px]">
+                                <div className="bg-slate-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
+                                    <Search className="w-10 h-10 text-slate-300" />
+                                </div>
+                                <h3 className="text-2xl font-bold text-accent-dark mb-2">No gigs match your search</h3>
+                                <p className="text-slate-500 max-w-md mx-auto mb-8">Try adjusting your filters or search terms to find what you're looking for.</p>
                                 <Button 
                                     variant="outline" 
-                                    className="mt-6 border-primary-wera text-primary-wera font-bold hover:bg-primary-wera/5"
-                                    onClick={() => { setSearchQuery(''); setFilters({}); }}
+                                    className="h-12 px-8 border-primary-wera text-primary-wera font-bold rounded-xl hover:bg-primary-wera/5"
+                                    onClick={clearFilters}
                                 >
-                                    Clear Filters
+                                    Clear All Filters
                                 </Button>
                             </div>
                         )}
                         
                         {hasNextPage && (
-                            <div className="mt-12 flex justify-center">
+                            <div className="mt-16 flex justify-center">
                                 <Button 
                                     variant="outline" 
                                     onClick={() => fetchNextPage()}
                                     disabled={isFetchingNextPage}
-                                    className="h-12 px-8 border-2 border-primary-wera/20 text-primary-wera font-bold rounded-xl hover:bg-primary-wera/5 transition-all flex items-center gap-2"
+                                    className="h-14 px-12 border-2 border-primary-wera/10 text-primary-wera font-bold rounded-2xl hover:bg-primary-wera/5 transition-all flex items-center gap-3 shadow-lg shadow-primary-wera/5"
                                 >
-                                    {isFetchingNextPage ? 'Loading...' : 'Load More Gigs'}
-                                    <RefreshCw className={`w-4 h-4 ml-2 ${isFetchingNextPage ? 'animate-spin' : ''}`} />
+                                    {isFetchingNextPage ? 'Loading...' : 'Discover More'}
+                                    <RefreshCw className={`w-5 h-5 ${isFetchingNextPage ? 'animate-spin' : ''}`} />
                                 </Button>
                             </div>
                         )}
@@ -137,11 +212,12 @@ export default function MarketplacePage() {
                 </div>
             </div>
             
-            {/* Map View Quick Access */}
-            <div className="fixed bottom-8 right-8 z-40">
-                <Button className="h-14 bg-accent-dark hover:bg-accent-dark/90 text-white px-6 rounded-full shadow-2xl hover:scale-105 transition-transform flex items-center gap-2">
-                    <Map className="w-5 h-5" />
-                    <span className="font-semibold text-lg">Map View</span>
+            {/* Map View Toggle Button */}
+            <div className="fixed bottom-10 right-10 z-40 group">
+                <div className="absolute -inset-4 bg-primary-wera/20 rounded-full blur-xl group-hover:bg-primary-wera/30 transition-colors" />
+                <Button className="relative h-16 bg-accent-dark hover:bg-accent-dark/95 text-white px-8 rounded-full shadow-2xl hover:scale-105 transition-all flex items-center gap-3 border border-white/10">
+                    <Map className="w-6 h-6" />
+                    <span className="font-bold text-lg">Market Map</span>
                 </Button>
             </div>
         </div>

@@ -16,7 +16,7 @@ export const AddSkillModal: React.FC<AddSkillModalProps> = ({ isOpen, onClose })
     const { mutate: addSkill, isPending } = useAddSkill();
 
     const [searchQuery, setSearchQuery] = useState('');
-    const [selectedSkills, setSelectedSkills] = useState<{skillId: string, level: number}[]>([]);
+    const [selectedSkillIds, setSelectedSkillIds] = useState<string[]>([]);
 
     const filteredSkills = availableSkills?.filter(skill => 
         skill.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -24,30 +24,29 @@ export const AddSkillModal: React.FC<AddSkillModalProps> = ({ isOpen, onClose })
     ) || [];
 
     const toggleSkill = (skillId: string) => {
-        setSelectedSkills(prev => {
-            if (prev.some(s => s.skillId === skillId)) {
-                return prev.filter(s => s.skillId !== skillId);
+        setSelectedSkillIds(prev => {
+            if (prev.includes(skillId)) {
+                return prev.filter(id => id !== skillId);
             }
-            return [...prev, { skillId, level: 1 }];
+            return [...prev, skillId];
         });
-    };
-
-    const updateSkillLevel = (skillId: string, level: number) => {
-        setSelectedSkills(prev => prev.map(s => s.skillId === skillId ? { ...s, level } : s));
     };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (selectedSkills.length === 0) {
+        if (selectedSkillIds.length === 0) {
             toast.error("Please select at least one skill");
             return;
         }
 
-        addSkill(selectedSkills, {
+        // Map to the format expected by the API (all defaulted to level 1)
+        const skillsPayload = selectedSkillIds.map(skillId => ({ skillId, level: 1 }));
+
+        addSkill(skillsPayload, {
             onSuccess: () => {
-                toast.success(`${selectedSkills.length} skill(s) added to profile!`);
+                toast.success(`${selectedSkillIds.length} skill(s) added to profile!`);
                 setSearchQuery('');
-                setSelectedSkills([]);
+                setSelectedSkillIds([]);
                 onClose();
             },
             onError: (error: any) => {
@@ -68,7 +67,8 @@ export const AddSkillModal: React.FC<AddSkillModalProps> = ({ isOpen, onClose })
                             Add Skills
                         </DialogTitle>
                         <DialogDescription className="text-slate-500 font-medium">
-                            Select one or more skills and set your proficiency level.
+                            Select one or more skills. <br/>
+                            <span className="text-stitch-primary font-bold text-xs uppercase tracking-wider">Note: Skill levels are securely earned via the Learning Hub.</span>
                         </DialogDescription>
                     </DialogHeader>
 
@@ -89,8 +89,8 @@ export const AddSkillModal: React.FC<AddSkillModalProps> = ({ isOpen, onClose })
                         <div className="space-y-4">
                             <div className="flex justify-between items-center">
                                 <label className="text-xs font-bold uppercase tracking-widest text-slate-500">Available Skills</label>
-                                {selectedSkills.length > 0 && (
-                                    <span className="text-xs font-bold text-stitch-primary">{selectedSkills.length} selected</span>
+                                {selectedSkillIds.length > 0 && (
+                                    <span className="text-xs font-bold text-stitch-primary">{selectedSkillIds.length} selected</span>
                                 )}
                             </div>
                             
@@ -101,8 +101,7 @@ export const AddSkillModal: React.FC<AddSkillModalProps> = ({ isOpen, onClose })
                             ) : (
                                 <div className="grid grid-cols-1 gap-3 max-h-[350px] overflow-y-auto pr-2 custom-scrollbar">
                                     {filteredSkills.map(skill => {
-                                        const isSelected = selectedSkills.some(s => s.skillId === skill.id);
-                                        const currentLevel = selectedSkills.find(s => s.skillId === skill.id)?.level || 1;
+                                        const isSelected = selectedSkillIds.includes(skill.id);
 
                                         return (
                                             <div 
@@ -128,30 +127,6 @@ export const AddSkillModal: React.FC<AddSkillModalProps> = ({ isOpen, onClose })
                                                         <p className="text-[10px] uppercase font-bold tracking-widest text-slate-400 truncate">{skill.category}</p>
                                                     </div>
                                                 </button>
-
-                                                {/* Inline Level Picker */}
-                                                {isSelected && (
-                                                    <div className="grid grid-cols-3 gap-2 mt-1 animate-in fade-in slide-in-from-top-1 pl-11">
-                                                        {[
-                                                            { value: 1, label: "Beginner" },
-                                                            { value: 2, label: "Intermediate" },
-                                                            { value: 3, label: "Expert" }
-                                                        ].map(opt => (
-                                                            <button
-                                                                key={opt.value}
-                                                                type="button"
-                                                                onClick={(e) => { e.stopPropagation(); updateSkillLevel(skill.id, opt.value); }}
-                                                                className={`py-1.5 px-2 rounded-lg border font-bold text-xs transition-all ${
-                                                                    currentLevel === opt.value
-                                                                    ? 'bg-stitch-primary text-white border-stitch-primary'
-                                                                    : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-slate-300'
-                                                                }`}
-                                                            >
-                                                                {opt.label}
-                                                            </button>
-                                                        ))}
-                                                    </div>
-                                                )}
                                             </div>
                                         );
                                     })}
@@ -167,7 +142,7 @@ export const AddSkillModal: React.FC<AddSkillModalProps> = ({ isOpen, onClose })
                         <Button type="button" variant="outline" onClick={onClose} disabled={isPending} className="rounded-xl h-12 font-bold px-6">
                             Cancel
                         </Button>
-                        <Button type="submit" disabled={isPending || selectedSkills.length === 0} className="rounded-xl h-12 font-bold px-8 bg-stitch-primary hover:bg-stitch-primary/90 text-white shadow-lg">
+                        <Button type="submit" disabled={isPending || selectedSkillIds.length === 0} className="rounded-xl h-12 font-bold px-8 bg-stitch-primary hover:bg-stitch-primary/90 text-white shadow-lg">
                             {isPending ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Adding...

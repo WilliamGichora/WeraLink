@@ -4,6 +4,7 @@ import { Award, Plus, ShieldCheck, Trophy, X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useRemoveSkill } from '../hooks/useProfile';
 import { AddSkillModal } from './AddSkillModal';
+import { SystemBadge } from './SystemBadge';
 import { toast } from 'sonner';
 
 export const ProfileSkills = ({ profile }: { profile: ProfileData }) => {
@@ -44,6 +45,13 @@ export const ProfileSkills = ({ profile }: { profile: ProfileData }) => {
                     <Plus className="w-4 h-4" /> Add Skill
                 </Button>
             </div>
+
+            <div className="mb-6 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-lg flex items-start gap-3">
+                <ShieldCheck className="w-5 h-5 text-blue-500 mt-0.5 shrink-0" />
+                <p className="text-sm text-blue-700 dark:text-blue-300">
+                    <span className="font-bold">Unlock Higher Levels & Badges:</span> All added skills start at Beginner (Level 1). Visit the <a href="/worker/learning-hub" className="underline font-bold hover:text-blue-800 dark:hover:text-blue-200">Learning Hub</a> to take verification assessments, level up to Intermediate or Expert, and earn system badges!
+                </p>
+            </div>
             
             {skills.length === 0 ? (
                 <div className="p-8 border border-dashed border-slate-200 dark:border-slate-700 rounded-xl text-center text-slate-500">
@@ -76,27 +84,40 @@ export const ProfileSkills = ({ profile }: { profile: ProfileData }) => {
                             <span className="text-xs font-black uppercase tracking-widest text-stitch-primary line-clamp-1 p-1 max-w-full" title={s.skill?.name}>{s.skill?.name || "Skill"}</span>
                             
                             {/* Level Indicators */}
-                            <div className="flex gap-1 mt-2 mb-1">
-                                {[1, 2, 3].map((l) => (
-                                    <div key={l} className={`w-3 h-1 rounded-full ${l <= s.level ? 'bg-stitch-primary' : 'bg-stitch-primary/20'}`}></div>
-                                ))}
+                            <div className="flex flex-col items-center gap-1 mt-2 mb-1">
+                                <div className="flex gap-1">
+                                    {[1, 2, 3].map((l) => (
+                                        <div key={l} className={`w-3 h-1 rounded-full ${l <= s.level ? 'bg-stitch-primary' : 'bg-stitch-primary/20'}`}></div>
+                                    ))}
+                                </div>
+                                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">
+                                    {s.level === 1 ? 'Beginner' : s.level === 2 ? 'Intermediate' : 'Expert'}
+                                </span>
                             </div>
                         </div>
                     ))}
                 </div>
             )}
             
-            {/* Hardcoded system badging representation based on Stitch */}
+            {/* System Badges Section */}
             <div className="mt-8 pt-8 border-t border-slate-100 dark:border-slate-700">
-                 <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500 mb-4 flex items-center gap-2">
+                 <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500 mb-6 flex items-center gap-2">
                      <Trophy className="w-4 h-4" /> System Badges
                  </h3>
-                 <div className="flex flex-wrap gap-3">
-                     <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600">
-                         <ShieldCheck className="w-4 h-4 text-green-600" />
-                         <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Identity Verified</span>
+                 
+                 {(!profile.user.badges || profile.user.badges.length === 0) ? (
+                     <div className="bg-slate-50 dark:bg-slate-900/50 rounded-xl p-6 text-center border border-slate-100 dark:border-slate-800">
+                         <Trophy className="w-8 h-8 mx-auto text-slate-300 dark:text-slate-600 mb-2" />
+                         <p className="text-sm text-slate-500 font-medium">You haven't earned any system badges yet.</p>
+                         <p className="text-xs text-slate-400 mt-1">Visit the Learning Hub and pass verification assessments to start building your collection!</p>
                      </div>
-                 </div>
+                 ) : (
+                     <div className="flex flex-wrap gap-6">
+                         {profile.user.badges.map((b: any) => (
+                             <SystemBadge key={b.badgeId} badgeName={b.badge.name} />
+                         ))}
+                     </div>
+                 )}
             </div>
 
             <AddSkillModal 
