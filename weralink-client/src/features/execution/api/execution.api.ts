@@ -35,18 +35,19 @@ export const useApplyForGig = () => {
 /**
  * Query to get assignments for the current worker
  */
-export const useGetWorkerAssignments = (statuses?: string[]) => {
+export const useGetWorkerAssignments = (statuses?: string[], options: any = {}) => {
   return useQuery({
     queryKey: ['workerAssignments', statuses],
     queryFn: async () => {
       try {
         const params = statuses && statuses.length > 0 ? { statuses: statuses.join(',') } : {};
-        const response = await api.get('/assignments/worker', { params });
+        const response = await api.get<{ success: boolean; data: any[] }>('/assignments/worker', { params });
         return response.data.data;
       } catch (error) {
         throw new Error(extractErrorMessage(error));
       }
-    }
+    },
+    ...options
   });
 };
 

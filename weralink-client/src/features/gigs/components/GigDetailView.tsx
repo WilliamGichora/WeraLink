@@ -8,10 +8,12 @@ import { useApplyForGig } from '@/features/execution/api/execution.api';
 import { 
     Briefcase, MapPin, Clock, CheckCircle2, 
     ArrowLeft, AlertCircle, Building2, UserCircle, Star, 
-    ArrowRight, Sparkles
+    ArrowRight, Sparkles, Lock
 } from 'lucide-react';
 import { RecommendedWorkersPanel } from './RecommendedWorkersPanel';
 import { useProfile } from '@/features/profile/hooks/useProfile';
+import { useAuth } from '@/features/auth/context/AuthContext';
+import { IntermediaryModal } from '@/components/auth/IntermediaryModal';
 import { toast } from 'sonner';
 
 // Function to calculate match score based on worker's actual skills vs gig's required skills.
@@ -30,11 +32,13 @@ export const GigDetailView: React.FC<GigDetailViewProps> = ({ viewerRole = 'work
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const location = useLocation();
+    const { isAuthenticated, user } = useAuth();
+    const [isIntermediaryOpen, setIsIntermediaryOpen] = useState(false);
     const recommendation = location.state?.recommendation;
     
     // Auth & Skills data
     const { data: gig, isLoading, isError } = gigHooks.useGetGigById(id);
-    const { data: profile } = useProfile();
+    const { data: profile } = useProfile({ enabled: isAuthenticated }); 
 
     const applyMutation = useApplyForGig();
 
@@ -59,10 +63,14 @@ export const GigDetailView: React.FC<GigDetailViewProps> = ({ viewerRole = 'work
 
     // Match score mapping with real skill data
     const gigSkillIds = gig.skills?.map((s: any) => s.skillId) || [];
-    const workerSkillIds = profile?.user.skills?.map((s: any) => s.skillId) || [];
+    const workerSkillIds = isAuthenticated ? (profile?.user.skills?.map((s: any) => s.skillId) || []) : [];
     const matchScore = calculateMatchScore(gigSkillIds, workerSkillIds);
 
     const handleApply = async () => {
+        if (!isAuthenticated) {
+            setIsIntermediaryOpen(true);
+            return;
+        }
         if (!id) return;
         try {
             await applyMutation.mutateAsync(id);
@@ -191,7 +199,19 @@ export const GigDetailView: React.FC<GigDetailViewProps> = ({ viewerRole = 'work
                     </Card>
                     
                     {/* Employer Info Inside Main Column */}
-                    <Card className="bg-white rounded-xl shadow-sm border border-primary-wera/10">
+                    <Card className="bg-white rounded-xl shadow-sm border border-primary-wera/10 relative overflow-hidden">
+                        {!isAuthenticated && (
+                            <div className="absolute inset-0 bg-white/40 backdrop-blur-[2px] z-10 flex items-center justify-center p-6 text-center">
+                                <div className="bg-white/90 p-6 rounded-2xl shadow-xl border border-primary-wera/10 max-w-sm">
+                                    <Lock className="w-8 h-8 text-primary-wera mx-auto mb-3" />
+                                    <h4 className="font-bold text-accent-dark mb-2">Employer Details Locked</h4>
+                                    <p className="text-xs text-slate-500 mb-4">Join WeraLink to view full employer reputation and history.</p>
+                                    <Button size="sm" className="bg-primary-wera text-white font-bold rounded-lg" onClick={() => setIsIntermediaryOpen(true)}>
+                                        Reveal Profile
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
                         <div className="p-6 flex items-center justify-between pb-0 mb-4">
                             <h2 className="text-xl font-bold text-accent-dark flex items-center gap-2">
                                 <Building2 className="w-5 h-5 text-primary-wera" /> About the Employer
@@ -203,8 +223,13 @@ export const GigDetailView: React.FC<GigDetailViewProps> = ({ viewerRole = 'work
                                 <div className="w-14 h-14 rounded-xl bg-slate-100 flex items-center justify-center border border-slate-200 shrink-0">
                                     <UserCircle className="w-8 h-8 text-slate-400" />
                                 </div>
-                                <div>
-                                    <h3 className="font-bold text-text-main text-lg">{gig.employer?.name || 'WeraLink Member'}</h3>
+                                <div className="grow">
+                                    <div className="flex items-center justify-between">
+                                        <h3 className="font-bold text-text-main text-lg">{gig.employer?.name || 'WeraLink Member'}</h3>
+                                        <Button variant="link" className="text-primary-wera text-xs p-0 h-auto font-bold" onClick={() => navigate(`/profile/${gig.employerId}`)}>
+                                            View Public Profile
+                                        </Button>
+                                    </div>
                                     <div className="flex items-center gap-1 text-yellow-500 my-1">
                                         <Star className="w-4 h-4 fill-current" />
                                         <Star className="w-4 h-4 fill-current" />
@@ -458,6 +483,13 @@ export const GigDetailView: React.FC<GigDetailViewProps> = ({ viewerRole = 'work
                     </div>
                 </div>
             </div>
+            
+            <IntermediaryModal 
+                isOpen={isIntermediaryOpen} 
+                onClose={() => setIsIntermediaryOpen(false)} 
+                redirectPath={`/gigs/${id}`}
+                actionType="apply"
+            />
         </div>
     );
 };

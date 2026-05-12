@@ -2,10 +2,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getMyProfile, updateMyProfile, addProfileSkill, removeProfileSkill } from '../api/profile.api';
 import type { ProfileData } from '../types';
 
-export const useProfile = () => {
+export const useProfile = (options = {}) => {
     return useQuery<ProfileData>({
         queryKey: ['my-profile'],
         queryFn: getMyProfile,
+        ...options
     });
 };
 

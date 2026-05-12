@@ -254,9 +254,13 @@ export class AnalyticsService {
       escrowBalance,
       disputeStats,
     ] = await Promise.all([
-      // Platform GMV
+      // Platform GMV (Total money processed through the system)
+      // Includes both deposits and direct payouts if any
       prisma.transaction.aggregate({
-        where: { type: 'DEPOSIT_TO_ESCROW', status: { in: ['SUCCESS', 'RELEASED'] } },
+        where: {
+          type: { in: ['DEPOSIT_TO_ESCROW', 'PAYOUT_TO_WORKER'] },
+          status: { in: ['SUCCESS', 'RELEASED'] }
+        },
         _sum: { amount: true },
         _count: { id: true },
       }),
@@ -269,17 +273,29 @@ export class AnalyticsService {
         months
       ),
 
-      // User counts by role
-      prisma.user.groupBy({
-        by: ['role'],
-        _count: { id: true },
-      }),
+      // User counts (Verified workers vs All)
+      Promise.all([
+        prisma.user.count({ 
+          where: { 
+            role: 'WORKER', 
+            OR: [
+              { profile: { verified: true } },
+              { skills: { some: { verified: true } } }
+            ]
+          } 
+        }),
+        prisma.user.groupBy({
+          by: ['role'],
+          _count: { id: true },
+        })
+      ]),
 
       // User growth over time
       AnalyticsService._getMonthlyTrend('user', {}, 'createdAt', months),
 
-      // Gig volume
+      // Gig volume (Active vs All)
       Promise.all([
+        prisma.gig.count({ where: { status: { in: ['OPEN', 'ASSIGNED'] } } }),
         prisma.gig.count(),
         prisma.gig.count({ where: { status: 'COMPLETED' } }),
       ]),
@@ -317,8 +333,9 @@ export class AnalyticsService {
     ]);
 
     // Process user counts
+    const verifiedWorkersCount = userCounts[0];
     const userCountMap = {};
-    userCounts.forEach(u => { userCountMap[u.role] = u._count.id; });
+    userCounts[1].forEach(u => { userCountMap[u.role] = u._count.id; });
 
     // Process category distribution
     const categories = categoryDistribution.map(c => ({
@@ -330,10 +347,12 @@ export class AnalyticsService {
       kpis: {
         totalGMV: (gmvAggregate._sum.amount || 0),
         totalTransactions: gmvAggregate._count.id,
-        totalWorkers: userCountMap['WORKER'] || 0,
+        totalWorkers: userCountMap['WORKER'] || 0, // Restored to total for Admin compatibility
+        verifiedWorkers: verifiedWorkersCount, // New field for Discovery
         totalEmployers: userCountMap['EMPLOYER'] || 0,
-        totalGigs: gigVolume[0],
-        completedGigs: gigVolume[1],
+        totalGigs: gigVolume[1], // Restored to total for Admin compatibility
+        activeGigs: gigVolume[0], // New field for Discovery
+        completedGigs: gigVolume[2],
         avgPlatformRating: platformRating._avg.score
           ? Math.round(platformRating._avg.score * 10) / 10
           : null,

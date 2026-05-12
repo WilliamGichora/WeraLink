@@ -7,7 +7,6 @@ import prisma from '../config/prisma.js';
  * Architecture:
  * - Heavy reports (financial, platform) are also stored in Supabase Storage
  * - Light reports (performance cards, skills certs) are client-side only
- * - All data methods use Prisma aggregates/selects for performance
  * - Date range filtering with sanitized inputs
  */
 export class ReportService {

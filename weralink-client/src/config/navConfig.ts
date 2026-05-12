@@ -36,7 +36,7 @@ export interface NavCategory {
 
 export interface NavLink {
   title: string;
-  href?: string; // If undefined, it acts as a dropdown trigger
+  href?: string;
   categories?: NavCategory[];
 }
 
@@ -47,9 +47,9 @@ export type NavConfigMap = {
 export const NAV_CONFIG: NavConfigMap = {
   PUBLIC: [
     { title: "Home", href: "/" },
+    { title: "Marketplace", href: "/marketplace" },
+    { title: "Find Talent", href: "/talent" },
     { title: "How It Works", href: "/#how-it-works" },
-    { title: "Gigs", href: "/gigs" },
-    { title: "About", href: "/about" },
     { title: "Sign In", href: "/auth" },
     { title: "Join", href: "/auth?tab=register" },
   ],

@@ -20,7 +20,7 @@ export const getModule = async (req, res, next) => {
     // Always fetch without answers first
     const module = await trainingService.getModuleWithQuestions(id, false);
 
-    // If we are in development mode (or for the MVP panel presentation),
+    // If we are in development mode (or for the MVP),
     // we attach a cheatSheet to the response so the user can demonstrate pass/fail scenarios.
     let cheatSheet = null;
     if (NODE_ENV !== 'production' || ENABLE_DEMO_CHEATSHEET === 'true') {

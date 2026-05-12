@@ -7,12 +7,14 @@ import { GigCard } from '@/features/gigs/components/GigCard';
 import { gigHooks } from '@/features/gigs/api/gig.api';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useGetWorkerAssignments } from '@/features/execution/api/execution.api';
+import { useAuth } from '@/features/auth/context/AuthContext';
 
 export default function MarketplacePage() {
     const [filters, setFilters] = useState<any>({});
     const [searchQuery, setSearchQuery] = useState('');
     const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
     
+    const { user, isAuthenticated } = useAuth();
     const { 
         data, 
         isLoading,
@@ -22,11 +24,11 @@ export default function MarketplacePage() {
         refetch
     } = gigHooks.useGetMarketplaceGigs(filters);
 
-    const { data: assignments } = useGetWorkerAssignments();
+    const { data: assignments } = useGetWorkerAssignments([], { enabled: isAuthenticated });
 
     const filteredGigs = data ? data.pages.flatMap((page: any) => page.gigs) : [];
-    const activeGigsCount = data?.pages[0]?.meta?.totalGigs || filteredGigs.length;
-    const myApplicationsCount = assignments?.filter((assignment: any) => assignment.status === 'APPLIED')?.length || 0;
+    const activeGigsCount = data?.pages[0]?.meta?.total || filteredGigs.length;
+    const myApplicationsCount = isAuthenticated ? (assignments?.filter((assignment: any) => assignment.status === 'APPLIED')?.length || 0) : 0;
 
     const debouncedSearch = useDebounce(searchQuery, 500);
 

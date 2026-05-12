@@ -110,13 +110,13 @@ class TrainingService {
     let badgeAwarded = null;
 
     if (passed) {
-      newLevel = scorePercentage >= 90 ? 3 : 2; // Expert vs Intermediate
+      newLevel = scorePercentage >= 90 ? 3 : 2; 
 
       const badgeSuffix = scorePercentage >= 90 ? 'Expert' : 'Specialist';
       const badgeName = `${module.skill.name} ${badgeSuffix}`;
 
       await prisma.$transaction(async (tx) => {
-        // Upsert Completion
+        
         await tx.moduleCompletion.upsert({
           where: {
             userId_moduleId: { userId, moduleId }
@@ -176,7 +176,7 @@ class TrainingService {
           userId_moduleId: { userId, moduleId }
         },
         update: {
-          score: Math.max(scorePercentage, 0), // Assuming we might keep highest score, but simple update for MVP
+          score: Math.max(scorePercentage, 0),
           passed: false,
           completedAt: new Date()
         },

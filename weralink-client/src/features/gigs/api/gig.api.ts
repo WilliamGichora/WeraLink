@@ -60,7 +60,7 @@ export const gigHooks = {
     return useInfiniteQuery({
       queryKey: ['gigs', 'marketplace', filters],
       queryFn: async ({ pageParam = 1 }) => {
-        const { data } = await api.get<{ success: boolean; data: { gigs: any[] }, meta: { totalPages: number, page: number } }>('/gigs', { 
+        const { data } = await api.get<{ success: boolean; data: { gigs: any[] }, meta: { total: number, totalPages: number, page: number, limit: number } }>('/gigs', { 
             params: { ...filters, page: pageParam, limit: 10 } 
         });
         return {

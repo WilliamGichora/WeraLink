@@ -1,6 +1,10 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import AuthPage from "./pages/public/AuthPage";
+import LandingPage from "./pages/public/LandingPage";
+import TalentDiscoveryPage from "./pages/public/TalentDiscovery";
+import PublicProfilePage from "./pages/public/PublicProfileView";
+import WhyWeraLink from "./pages/public/WhyWeraLink";
 import WorkerDashboard from "./pages/worker/Dashboard";
 import WorkerProfile from "./pages/worker/WorkerProfile";
 import MarketplacePage from "./pages/worker/Marketplace";
@@ -31,7 +35,7 @@ import { AuthProvider } from "./features/auth/context/AuthContext";
 import { ProtectedRoute, PublicRoute } from "./components/ProtectedRoute";
 import { Toaster } from "./components/ui/sonner";
 
-// Lazy-loaded pages (code splitting for analytics/reports bundles)
+// Lazy-loaded pages
 const WorkerAnalytics = lazy(() => import("./pages/worker/WorkerAnalytics"));
 const WorkerReports = lazy(() => import("./pages/worker/WorkerReports"));
 const EmployerAnalytics = lazy(() => import("./pages/employer/EmployerAnalytics"));
@@ -55,8 +59,16 @@ function App() {
       <BrowserRouter>
         <Routes>
 
-          <Route element={<PublicRoute />}>
-            <Route element={<PublicLayout />}>
+          {/* PUBLIC ROUTES */}
+          <Route element={<PublicLayout />}>
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/marketplace" element={<MarketplacePage />} />
+            <Route path="/gigs/:id" element={<GigDetailPage />} />
+            <Route path="/talent" element={<TalentDiscoveryPage />} />
+            <Route path="/profile/:id" element={<PublicProfilePage />} />
+            <Route path="/why-weralink" element={<WhyWeraLink />} />
+            
+            <Route element={<PublicRoute />}>
               <Route path="/auth" element={<AuthPage />} />
             </Route>
           </Route>
@@ -64,9 +76,9 @@ function App() {
           <Route element={<ProtectedRoute allowedRoles={['WORKER']} />}>
             <Route path="/worker" element={<WorkerLayout />}>
               <Route index element={<WorkerDashboard />} />
-              <Route path="gigs" element={<MarketplacePage />} />
+              <Route path="gigs" element={<Navigate to="/marketplace" replace />} />
               <Route path="gigs/recommended" element={<RecommendedGigsPage />} />
-              <Route path="gigs/:id" element={<GigDetailPage />} />
+              <Route path="gigs/:id" element={<Navigate to="/gigs/:id" replace />} />
               <Route path="profile" element={<WorkerProfile />} />
               <Route path="applications" element={<MyApplications />} />
               <Route path="assignments" element={<ActiveAssignments />} />
@@ -80,7 +92,7 @@ function App() {
                <Route path="learning-hub/:id" element={<ModuleViewPage />} />
              </Route>
            </Route>
- 
+
            <Route element={<ProtectedRoute allowedRoles={['EMPLOYER']} />}>
              <Route path="/employer" element={<EmployerLayout />}>
                <Route index element={<EmployerDashboard />} />
@@ -109,8 +121,7 @@ function App() {
             </Route>
           </Route>
 
-          <Route path="/" element={<Navigate to="/auth" replace />} />
-          <Route path="*" element={<Navigate to="/auth" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
       <Toaster />
@@ -119,4 +130,3 @@ function App() {
 }
 
 export default App;
-
