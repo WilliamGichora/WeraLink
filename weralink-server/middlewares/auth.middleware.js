@@ -51,6 +51,19 @@ async function resolveDbUser(req) {
 }
 
 
+// Paths that suspended users are still allowed to access
+const SUSPENDED_ALLOWED_PATHS = [
+    '/api/auth/',
+    '/api/support/',
+    '/api/notifications',
+    '/api/profiles/me',
+];
+
+function isSuspendedAllowed(req) {
+    const url = req.originalUrl || req.url;
+    return SUSPENDED_ALLOWED_PATHS.some(p => url.startsWith(p));
+}
+
 export const requireAuth = async (req, res, next) => {
     try {
         const token = extractToken(req);
@@ -70,6 +83,28 @@ export const requireAuth = async (req, res, next) => {
         }
 
         req.user = { id: user.id };
+
+        // Eagerly check suspension status on every authenticated request
+        const dbUser = await prisma.user.findUnique({
+            where: { id: user.id },
+            select: { id: true, role: true, status: true, email: true },
+        });
+
+        if (!dbUser) {
+            return next(new AppError('User record not found', 401, 'UNAUTHORIZED'));
+        }
+
+        if (dbUser.status === 'SUSPENDED' && !isSuspendedAllowed(req)) {
+            return next(
+                new AppError(
+                    'Your account has been suspended. Please contact support for assistance.',
+                    403,
+                    'SUSPENDED',
+                ),
+            );
+        }
+
+        req.dbUser = dbUser;
         next();
     } catch (error) {
         console.error('Auth Middleware Error:', error);

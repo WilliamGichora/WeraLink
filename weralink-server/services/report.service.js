@@ -590,6 +590,199 @@ export class ReportService {
     };
   }
 
+  // ─── Gig Completion Reports ─────────────────────────────────
+
+  /**
+   * W5: Worker Gig Completion Report
+   * Detailed single-gig performance report for the worker.
+   */
+  static async getWorkerGigCompletionReport(assignmentId, workerId) {
+    const assignment = await prisma.assignment.findUnique({
+      where: { id: assignmentId },
+      include: {
+        gig: {
+          select: {
+            id: true, title: true, category: true, description: true,
+            payAmount: true, currency: true, workType: true, difficulty: true,
+            createdAt: true, expiresAt: true,
+            employer: { select: { id: true, name: true, profile: { select: { companyName: true, companyLogo: true } } } },
+          },
+        },
+        worker: { select: { id: true, name: true } },
+        evidence: {
+          select: { id: true, evidenceType: true, requirementTag: true, submittedAt: true, validated: true, validatorNotes: true },
+        },
+        ratings: {
+          where: { rateeId: workerId },
+          select: { score: true, dimensions: true, comment: true, createdAt: true, rater: { select: { name: true } } },
+        },
+        transactions: {
+          where: { type: 'PAYOUT_TO_WORKER', status: 'SUCCESS' },
+          select: { amount: true, completedAt: true, receiptNumber: true },
+        },
+        dispute: { select: { id: true, status: true, reason: true, resolution: true } },
+      },
+    });
+
+    if (!assignment) throw new Error('Assignment not found');
+    if (assignment.workerId !== workerId) throw new Error('Access denied');
+
+    // Calculate performance metrics
+    const timeline = {
+      offered: assignment.offeredAt,
+      accepted: assignment.acceptedAt,
+      submitted: assignment.submittedAt,
+      approved: assignment.approvedAt,
+      paid: assignment.paidAt,
+    };
+
+    const timeToAccept = timeline.accepted && timeline.offered
+      ? Math.round((new Date(timeline.accepted) - new Date(timeline.offered)) / (1000 * 60 * 60))
+      : null;
+    
+    const timeToComplete = timeline.submitted && timeline.accepted
+      ? Math.round((new Date(timeline.submitted) - new Date(timeline.accepted)) / (1000 * 60 * 60))
+      : null;
+
+    const deadlineMet = assignment.deadlineAt && timeline.submitted
+      ? new Date(timeline.submitted) <= new Date(assignment.deadlineAt)
+      : null;
+
+    const hadRevisions = assignment.revisionNotes !== null;
+
+    return {
+      reportType: 'GIG_COMPLETION',
+      gig: {
+        title: assignment.gig.title,
+        category: assignment.gig.category,
+        description: assignment.gig.description,
+        payAmount: Number(assignment.gig.payAmount),
+        currency: assignment.gig.currency,
+        difficulty: assignment.gig.difficulty,
+        workType: assignment.gig.workType,
+        employer: {
+          name: assignment.gig.employer.name,
+          companyName: assignment.gig.employer.profile?.companyName,
+          companyLogo: assignment.gig.employer.profile?.companyLogo,
+        },
+      },
+      timeline,
+      metrics: {
+        timeToAcceptHours: timeToAccept,
+        timeToCompleteHours: timeToComplete,
+        deadlineMet,
+        hadRevisions,
+        revisionNotes: assignment.revisionNotes,
+        completionNotes: assignment.completionNotes,
+      },
+      evidence: assignment.evidence,
+      rating: assignment.ratings[0] || null,
+      payment: assignment.transactions[0] || null,
+      dispute: assignment.dispute || null,
+    };
+  }
+
+  /**
+   * E6: Employer Assignment Review Report
+   * Detailed report of a worker's interaction with a gig after assignment completion.
+   */
+  static async getEmployerAssignmentReport(assignmentId, employerId) {
+    const assignment = await prisma.assignment.findUnique({
+      where: { id: assignmentId },
+      include: {
+        gig: {
+          select: {
+            id: true, title: true, category: true, payAmount: true, currency: true,
+            difficulty: true, employerId: true, createdAt: true,
+          },
+        },
+        worker: {
+          select: {
+            id: true, name: true, email: true,
+            profile: { select: { bio: true, location: true, verified: true } },
+            skills: { include: { skill: { select: { name: true, category: true } } }, take: 10 },
+            ratingsRecv: { select: { score: true }, take: 50 },
+            _count: { select: { assignments: true } },
+          },
+        },
+        evidence: {
+          select: { id: true, evidenceType: true, requirementTag: true, submittedAt: true, validated: true, validatorNotes: true, fileUrl: true },
+        },
+        ratings: {
+          select: { score: true, dimensions: true, comment: true, createdAt: true, rater: { select: { name: true } } },
+        },
+        transactions: {
+          select: { type: true, status: true, amount: true, completedAt: true, receiptNumber: true },
+        },
+        dispute: { select: { id: true, status: true, reason: true, resolution: true } },
+      },
+    });
+
+    if (!assignment) throw new Error('Assignment not found');
+    if (assignment.gig.employerId !== employerId) throw new Error('Access denied');
+
+    // Worker performance summary
+    const workerRatings = assignment.worker.ratingsRecv || [];
+    const avgWorkerRating = workerRatings.length > 0
+      ? Math.round(workerRatings.reduce((sum, r) => sum + r.score, 0) / workerRatings.length * 10) / 10
+      : null;
+
+    const timeline = {
+      offered: assignment.offeredAt,
+      accepted: assignment.acceptedAt,
+      submitted: assignment.submittedAt,
+      approved: assignment.approvedAt,
+      paid: assignment.paidAt,
+    };
+
+    const timeToAccept = timeline.accepted && timeline.offered
+      ? Math.round((new Date(timeline.accepted) - new Date(timeline.offered)) / (1000 * 60 * 60))
+      : null;
+    
+    const timeToComplete = timeline.submitted && timeline.accepted
+      ? Math.round((new Date(timeline.submitted) - new Date(timeline.accepted)) / (1000 * 60 * 60))
+      : null;
+
+    const deadlineMet = assignment.deadlineAt && timeline.submitted
+      ? new Date(timeline.submitted) <= new Date(assignment.deadlineAt)
+      : null;
+
+    return {
+      reportType: 'EMPLOYER_ASSIGNMENT_REVIEW',
+      gig: {
+        title: assignment.gig.title,
+        category: assignment.gig.category,
+        payAmount: Number(assignment.gig.payAmount),
+        currency: assignment.gig.currency,
+        difficulty: assignment.gig.difficulty,
+      },
+      workerProfile: {
+        name: assignment.worker.name,
+        email: assignment.worker.email,
+        bio: assignment.worker.profile?.bio,
+        location: assignment.worker.profile?.location,
+        verified: assignment.worker.profile?.verified,
+        skills: assignment.worker.skills.map(s => ({ name: s.skill.name, category: s.skill.category, level: s.level })),
+        avgRating: avgWorkerRating,
+        totalRatings: workerRatings.length,
+        totalAssignments: assignment.worker._count.assignments,
+      },
+      timeline,
+      metrics: {
+        timeToAcceptHours: timeToAccept,
+        timeToCompleteHours: timeToComplete,
+        deadlineMet,
+        hadRevisions: assignment.revisionNotes !== null,
+        revisionNotes: assignment.revisionNotes,
+        completionNotes: assignment.completionNotes,
+      },
+      evidence: assignment.evidence,
+      ratings: assignment.ratings,
+      transactions: assignment.transactions,
+      dispute: assignment.dispute || null,
+    };
+  }
+
   // ─── Helpers ────────────────────────────────────────────────
 
   static _buildDateFilter(startDate, endDate, field) {

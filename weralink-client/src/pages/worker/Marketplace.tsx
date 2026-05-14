@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Search, Map, RefreshCw, Briefcase, TrendingUp, CheckCircle2, SlidersHorizontal } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -10,8 +11,18 @@ import { useGetWorkerAssignments } from '@/features/execution/api/execution.api'
 import { useAuth } from '@/features/auth/context/AuthContext';
 
 export default function MarketplacePage() {
-    const [filters, setFilters] = useState<any>({});
-    const [searchQuery, setSearchQuery] = useState('');
+    const [searchParams, setSearchParams] = useSearchParams();
+    
+    // Parse filters from URL
+    const filters = useMemo(() => {
+        const params: any = {};
+        searchParams.forEach((value, key) => {
+            if (value) params[key] = value;
+        });
+        return params;
+    }, [searchParams]);
+
+    const [searchQuery, setSearchQuery] = useState(filters.search || '');
     const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
     
     const { user, isAuthenticated } = useAuth();
@@ -33,21 +44,36 @@ export default function MarketplacePage() {
     const debouncedSearch = useDebounce(searchQuery, 500);
 
     useEffect(() => {
-        setFilters((prev: any) => ({ ...prev, search: debouncedSearch }));
+        if (debouncedSearch !== (filters.search || '')) {
+            const newParams = new URLSearchParams(searchParams);
+            if (debouncedSearch) {
+                newParams.set('search', debouncedSearch);
+            } else {
+                newParams.delete('search');
+            }
+            setSearchParams(newParams, { replace: true });
+        }
     }, [debouncedSearch]);
 
     const handleFilterChange = (newFilters: any) => {
-        setFilters((prev: any) => ({
-            ...prev,
-            ...newFilters,
-            // Only keep filters that are in newFilters or are search
-            search: prev.search
-        }));
+        const newParams = new URLSearchParams(searchParams);
+        Object.entries(newFilters).forEach(([key, value]) => {
+            if (value) {
+                newParams.set(key, String(value));
+            } else {
+                newParams.delete(key);
+            }
+        });
+        // preserve search param if it exists and wasn't cleared by newFilters
+        if (filters.search && !newFilters.hasOwnProperty('search')) {
+             newParams.set('search', filters.search);
+        }
+        setSearchParams(newParams, { replace: true });
     };
 
     const clearFilters = () => {
         setSearchQuery('');
-        setFilters({});
+        setSearchParams(new URLSearchParams(), { replace: true });
     };
 
     return (

@@ -288,7 +288,21 @@ export const getGigById = async (req, res) => {
             relationLoadStrategy: 'join',
             include: {
                 skills: { include: { skill: true } },
-                employer: { select: { name: true } },
+                employer: {
+                    select: {
+                        name: true,
+                        id: true,
+                        profile: {
+                            select: {
+                                companyName: true,
+                                companyLogo: true,
+                                companyDescription: true,
+                                industry: true,
+                                location: true,
+                            },
+                        },
+                    },
+                },
                 _count: { select: { assignments: true } },
                 assignments: req.user?.id ? {
                     where: { workerId: req.user.id }

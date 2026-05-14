@@ -8,9 +8,11 @@ import {
 import { Button } from '@/components/ui/button';
 import { Link ,useNavigate} from 'react-router-dom';
 import { Card } from '@/components/ui/card';
+import { useAuth } from '@/features/auth/context/AuthContext';
 
 const WhyWeraLink: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   return (
     <div className="min-h-screen bg-[#F8FAFC] pb-24 font-sans overflow-hidden">
       {/* Hero Section */}
@@ -175,10 +177,13 @@ const WhyWeraLink: React.FC = () => {
                   </div>
                 ))}
               </div>
-
-              <Button onClick={() => navigate("/auth?tab=register")} size="lg" className="h-16 px-10 bg-accent-dark hover:bg-black text-white rounded-2xl text-lg font-black group shadow-2xl">
-                Explore Learning Hub <ArrowRight className="w-6 h-6 ml-2 group-hover:translate-x-1 transition-transform" />
-              </Button>
+              {user?.role === "WORKER" ?
+                <Button onClick={() => navigate("/worker/learning-hub")} size="lg" className="h-16 px-10 bg-accent-dark hover:bg-black text-white rounded-2xl text-lg font-black group shadow-2xl">
+                  Explore Learning Hub <ArrowRight className="w-6 h-6 ml-2 group-hover:translate-x-1 transition-transform" />
+                </Button> : <Button onClick={() => navigate("/auth?tab=register")} size="lg" className="h-16 px-10 bg-accent-dark hover:bg-black text-white rounded-2xl text-lg font-black group shadow-2xl">
+                  Explore Learning Hub <ArrowRight className="w-6 h-6 ml-2 group-hover:translate-x-1 transition-transform" />
+                </Button>}
+              
             </div>
 
             <div className="flex-1 relative">

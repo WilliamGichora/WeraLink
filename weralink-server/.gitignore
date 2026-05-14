@@ -70,3 +70,5 @@ typings/
 /scripts/sync_payouts.js
 /scripts/simulate-payout-success.js
 /scripts/sync-payouts.js
+/scripts/create-admin.js
+/scripts/fix-assignment-status-sync.js

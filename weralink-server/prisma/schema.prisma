@@ -50,6 +50,10 @@ model User {
   ratingsGiven Rating[]  @relation("Rater")
   ratingsRecv  Rating[]  @relation("Ratee")
   disputes     Dispute[]
+
+  // Admin & Support relations
+  supportTickets SupportTicket[]
+  activities     UserActivity[]
 }
 
 model Profile {
@@ -60,7 +64,14 @@ model Profile {
   location           String?
   availabilityStatus Boolean @default(true)
   portfolio          Json? // [{ id, title, description, url, type }]
-  verified           Boolean @default(false)
+  verified           Boolean @default(true)
+
+  // Employer-specific fields (null for workers)
+  companyName        String?
+  companyDescription String?
+  companyLogo        String?   // URL to uploaded company logo
+  industry           String?
+  website            String?
 }
 
 model Notification {
@@ -303,9 +314,13 @@ model Dispute {
   raisedById   String     @db.Uuid
   raisedBy     User       @relation(fields: [raisedById], references: [id], onDelete: Cascade)
   reason       String
-  status       String     @default("OPEN") // OPEN, RESOLVED_FOR_WORKER, RESOLVED_FOR_EMPLOYER
+  status       String     @default("OPEN") // OPEN, IN_REVIEW, RESOLVED_FOR_WORKER, RESOLVED_FOR_EMPLOYER, CLOSED
   resolution   String?
+  adminNotes   String?
+  evidenceUrls Json?      // [{url: String, label: String, uploadedBy: String}]
+  resolvedBy   String?    @db.Uuid
   createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
   resolvedAt   DateTime?
 }
 
@@ -367,4 +382,46 @@ model Report {
   fileUrl     String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// --- 6. SUPPORT & ADMIN ---
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum TicketCategory {
+  ACCOUNT_CHANGE
+  PAYMENT_ISSUE
+  DISPUTE_HELP
+  BUG_REPORT
+  GENERAL
+}
+
+model SupportTicket {
+  id          String         @id @default(uuid())
+  userId      String         @db.Uuid
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category    TicketCategory
+  subject     String
+  message     String
+  status      TicketStatus   @default(OPEN)
+  adminNotes  String?
+  resolvedBy  String?        @db.Uuid
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  resolvedAt  DateTime?
+}
+
+model UserActivity {
+  id        String   @id @default(uuid())
+  userId    String   @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action    String   // LOGIN, LOGOUT, GIG_CREATED, APPLICATION_SENT, DISPUTE_RAISED, etc.
+  metadata  Json?    // Flexible context data for the action
+  ipAddress String?
+  createdAt DateTime @default(now())
 }

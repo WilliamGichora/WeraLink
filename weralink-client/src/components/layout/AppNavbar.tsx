@@ -13,7 +13,7 @@ import {
   navigationMenuTriggerStyle,
 } from '@/components/ui/navigation-menu';
 import { Button } from '@/components/ui/button';
-import { Star, User, LogOut, Menu } from 'lucide-react';
+import { Star, User, LogOut, Menu, LifeBuoy } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,6 +27,7 @@ import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { NotificationDropdown } from './NotificationDropdown';
+import { WeraLinkLogo } from '@/components/ui/WeraLinkLogo';
 
 export const AppNavbar: React.FC = () => {
   const { user, isAuthenticated, logout } = useAuth();
@@ -56,11 +57,9 @@ export const AppNavbar: React.FC = () => {
       <div className="container mx-auto flex h-16 items-center px-4 md:px-6">
         
         {/* LOGO */}
-        <div className="mr-8 flex items-center">
-          <Link to="/" className="flex items-center space-x-2">
-            <span className="font-bold text-xl tracking-tight text-white">
-              WeraLink
-            </span>
+        <div className="mr-8 flex items-center shrink-0">
+          <Link to="/">
+            <WeraLinkLogo size="md" variant="light" />
           </Link>
         </div>
 
@@ -169,14 +168,22 @@ export const AppNavbar: React.FC = () => {
                     </Link>
                   </DropdownMenuItem>
                   
-                  {/* Role-specific reputation links */}
+                  {/* Role-specific links */}
                   {(user?.role === 'WORKER' || user?.role === 'EMPLOYER') && (
-                    <DropdownMenuItem asChild className="focus:text-white cursor-pointer">
-                      <Link to={`/${user?.role.toLowerCase()}/profile/ratings`}>
-                        <Star className="mr-2 h-4 w-4 text-amber-400" />
-                        <span>Ratings & Feedback</span>
-                      </Link>
-                    </DropdownMenuItem>
+                    <>
+                      <DropdownMenuItem asChild className="focus:text-white cursor-pointer">
+                        <Link to={`/${user?.role.toLowerCase()}/profile/ratings`}>
+                          <Star className="mr-2 h-4 w-4 text-amber-400" />
+                          <span>Ratings & Feedback</span>
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild className="focus:text-white cursor-pointer">
+                        <Link to={`/${user?.role.toLowerCase()}/support`}>
+                          <LifeBuoy className="mr-2 h-4 w-4 text-emerald-400" />
+                          <span>Support</span>
+                        </Link>
+                      </DropdownMenuItem>
+                    </>
                   )}
                   <DropdownMenuItem onClick={() => setIsLogoutDialogOpen(true)} className="cursor-pointer text-primary-wera focus:text-white focus:bg-primary-wera/20">
                     <LogOut className="mr-2 h-4 w-4" />
@@ -206,8 +213,8 @@ export const AppNavbar: React.FC = () => {
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="w-[300px] sm:w-[400px] bg-accent-dark/98 backdrop-blur-2xl border-r border-white/10 text-white">
-                <div className="flex items-center gap-2 mb-6 mt-4">
-                  <span className="font-bold text-xl tracking-tight text-white ml-2">WeraLink</span>
+                <div className="flex items-center gap-2 mb-6 mt-4 ml-2">
+                  <WeraLinkLogo size="md" variant="light" />
                 </div>
                 <ScrollArea className="h-[calc(100vh-8rem)] pb-10">
                   <div className="flex flex-col gap-4">

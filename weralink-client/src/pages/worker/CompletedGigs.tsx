@@ -7,7 +7,13 @@ import { Link } from 'react-router-dom';
 import { ReceiptModal } from '@/components/execution/ReceiptModal';
 import { RatingModal } from '@/features/ratings/components/RatingModal';
 import { useCheckRating } from '@/features/ratings/api/rating.api';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
+import { api } from '@/lib/api';
+import { toast } from 'sonner';
+import { downloadReportAsPdf } from '@/features/reports/utils/downloadPdf';
+import { ReportShell } from '@/features/reports/components/ReportShell';
+import { GigCompletionReport } from '@/features/reports/components/GigCompletionReport';
+import { Download, Loader2 } from 'lucide-react';
 
 export default function CompletedGigs() {
   const { data: assignments, isLoading } = useGetWorkerAssignments(['SUBMITTED', 'APPROVED', 'PAID', 'DISPUTED']);
@@ -21,6 +27,37 @@ export default function CompletedGigs() {
     employerName: string;
     gigTitle: string;
   } | null>(null);
+
+  // Report state
+  const reportRef = useRef<HTMLDivElement>(null);
+  const [downloadingReport, setDownloadingReport] = useState<string | null>(null);
+  const [reportData, setReportData] = useState<any>(null);
+
+  const handleDownloadReport = async (assignmentId: string, gigTitle: string) => {
+    setDownloadingReport(assignmentId);
+    try {
+      const res = await api.get(`/reports/worker/gig-completion/${assignmentId}`);
+      setReportData(res.data.data);
+      
+      // Allow React to render the hidden report component before capturing PDF
+      setTimeout(async () => {
+        if (reportRef.current) {
+          try {
+            await downloadReportAsPdf(reportRef.current, `WeraLink-Completion-${gigTitle.replace(/\s+/g, '-')}`);
+            toast.success('Report downloaded successfully!');
+          } catch (e) {
+            toast.error('PDF generation failed.');
+          }
+        }
+        setDownloadingReport(null);
+        setReportData(null);
+      }, 800);
+    } catch (err) {
+      toast.error('Failed to fetch report data.');
+      setDownloadingReport(null);
+      setReportData(null);
+    }
+  };
 
   const handleViewReceipt = (assignmentId: string) => {
     setSelectedAssignmentId(assignmentId);
@@ -184,6 +221,20 @@ export default function CompletedGigs() {
                           )}
 
                           {assignment.status === 'PAID' && (
+                            <Button 
+                              onClick={() => handleDownloadReport(assignment.id, assignment.gig.title)}
+                              disabled={downloadingReport === assignment.id}
+                              className="w-full h-11 bg-primary-wera hover:bg-primary-dark text-white font-bold rounded-xl shadow-lg shadow-primary-wera/20 transition-all flex items-center justify-center gap-2"
+                            >
+                              {downloadingReport === assignment.id ? (
+                                <><Loader2 className="w-4 h-4 animate-spin" /> Generating...</>
+                              ) : (
+                                <>Download Report <Download className="w-4 h-4" /></>
+                              )}
+                            </Button>
+                          )}
+
+                          {assignment.status === 'PAID' && (
                             <RateEmployerButton
                               assignmentId={assignment.id}
                               employerName={assignment.gig.employer?.name || 'Employer'}
@@ -218,6 +269,19 @@ export default function CompletedGigs() {
           rateeRole="employer"
         />
       )}
+
+      {/* Hidden Report Container for PDF Generation */}
+      <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
+        {reportData && (
+          <ReportShell 
+            ref={reportRef} 
+            title="Gig Completion Report" 
+            subtitle="Worker Assignment Summary"
+          >
+            <GigCompletionReport data={reportData} />
+          </ReportShell>
+        )}
+      </div>
     </div>
   );
 }

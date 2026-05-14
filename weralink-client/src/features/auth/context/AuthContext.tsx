@@ -16,8 +16,9 @@ interface AuthContextType {
     isAuthenticated: boolean;
     isLoading: boolean;
     login: (email: string, password: string) => Promise<any>;
+    adminLogin: (email: string, password: string) => Promise<void>;
     register: (data: any) => Promise<void>;
-    verifyOTP: (email: string, token: string, type?: 'signup' | 'magiclink' | 'recovery', rememberMe?: boolean) => Promise<void>;
+    verifyOTP: (email: string, token: string, type?: 'signup' | 'magiclink' | 'recovery', rememberMe?: boolean) => Promise<any>;
     resendOTP: (email: string, type?: 'signup' | 'magiclink' | 'recovery') => Promise<void>;
     forgotPassword: (email: string) => Promise<void>;
     updatePassword: (newPassword: string) => Promise<void>;
@@ -49,15 +50,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return await authService.login(email, password);
     };
 
+    const adminLogin = async (email: string, password: string) => {
+        const userData = await authService.adminLogin(email, password);
+        if (userData) {
+            setUser(userData);
+        }
+    };
+
     const register = async (data: any) => {
         await authService.register(data);
     };
 
     const verifyOTP = async (email: string, token: string, type: 'signup' | 'magiclink' | 'recovery' = 'signup', rememberMe: boolean = true) => {
-        const userData = await authService.verifyOTP(email, token, type, rememberMe);
-        if (userData) {
-            setUser(userData);
+        const data = await authService.verifyOTP(email, token, type, rememberMe);
+        if (data?.user) {
+            setUser(data.user);
         }
+        return data;
     };
 
     const resendOTP = async (email: string, type: 'signup' | 'magiclink' | 'recovery' = 'signup') => {
@@ -86,6 +95,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             isAuthenticated: !!user,
             isLoading,
             login,
+            adminLogin,
             register,
             verifyOTP,
             resendOTP,

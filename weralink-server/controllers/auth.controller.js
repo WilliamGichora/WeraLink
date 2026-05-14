@@ -120,6 +120,28 @@ export const verifyOTP = async (req, res, next) => {
 
         const supabaseUserId = authData.user.id;
 
+        // ── Password Recovery: grant temporary token only ──
+        if (verificationType === 'recovery') {
+            // Set a short-lived access token so the subsequent updatePassword call is authorized
+            const cookieOptions = {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'strict',
+                path: '/'
+            };
+
+            res.cookie('access_token', authData.session.access_token, {
+                ...cookieOptions,
+                maxAge: 10 * 60 * 1000 // 10 minutes — just enough to set a new password
+            });
+
+            return respond(res, 200, {
+                passwordResetRequired: true,
+                message: "Recovery code verified. Please set your new password."
+            });
+        }
+
+        // ── Standard login/signup OTP: full session ──
         const updatedUser = await prisma.user.update({
             where: { id: supabaseUserId },
             data: { status: 'ACTIVE' },
@@ -203,6 +225,64 @@ export const login = async (req, res) => {
     } catch (error) {
         console.error("Login Error:", error);
         return respond(res, 500, null, null, [{ code: "INTERNAL_ERROR", message: "An error occurred while logging in." }]);
+    }
+};
+
+export const adminLogin = async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        if (!email || !password) {
+             return respond(res, 400, null, null, [{ code: "VALIDATION_ERROR", message: "Email and password are required." }]);
+        }
+
+        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+            email,
+            password
+        });
+
+        if (authError || !authData.session) {
+             return respond(res, 401, null, null, [{ code: "UNAUTHORIZED", message: "Invalid admin credentials." }]);
+        }
+
+        const supabaseUserId = authData.user.id;
+
+        // Verify role in Prisma
+        const user = await prisma.user.findUnique({
+            where: { id: supabaseUserId },
+            select: { id: true, email: true, name: true, role: true, status: true }
+        });
+
+        if (!user || user.role !== 'ADMIN') {
+            await supabase.auth.admin.signOut(authData.session.access_token); // revoke token
+            return respond(res, 403, null, null, [{ code: "FORBIDDEN", message: "Access denied. Administrator privileges required." }]);
+        }
+
+        // Set Cookies
+        const cookieOptions = {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            path: '/'
+        };
+        
+        res.cookie('access_token', authData.session.access_token, {
+            ...cookieOptions,
+            maxAge: (authData.session.expires_in || 3600) * 1000
+        });
+        
+        res.cookie('refresh_token', authData.session.refresh_token, {
+            ...cookieOptions,
+            maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+        });
+
+        return respond(res, 200, {
+            user,
+            message: "Admin authentication successful."
+        });
+
+    } catch (error) {
+        console.error("Admin Login Error:", error);
+        return respond(res, 500, null, null, [{ code: "INTERNAL_ERROR", message: "An error occurred during admin login." }]);
     }
 };
 

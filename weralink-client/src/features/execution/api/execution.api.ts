@@ -42,7 +42,7 @@ export const useGetWorkerAssignments = (statuses?: string[], options: any = {}) 
       try {
         const params = statuses && statuses.length > 0 ? { statuses: statuses.join(',') } : {};
         const response = await api.get<{ success: boolean; data: any[] }>('/assignments/worker', { params });
-        return response.data.data;
+        return response.data.data as any[];
       } catch (error) {
         throw new Error(extractErrorMessage(error));
       }
@@ -192,8 +192,8 @@ export const useGetEmployerApplicants = (params: any = {}) => {
     queryKey: ['employerApplicants', params],
     queryFn: async () => {
       try {
-        const response = await api.get('/assignments/employer', { params });
-        return response.data.data;
+        const response = await api.get<{ success: boolean; data: any[] }>('/assignments/employer', { params });
+        return response.data.data as any[];
       } catch (error) {
         throw new Error(extractErrorMessage(error));
       }
@@ -209,8 +209,8 @@ export const useGetEmployerPendingReviews = () => {
     queryKey: ['employerReviews'],
     queryFn: async () => {
       try {
-        const response = await api.get('/assignments/employer/reviews');
-        return response.data.data;
+        const response = await api.get<{ success: boolean; data: any[] }>('/assignments/employer/reviews');
+        return response.data.data as any[];
       } catch (error) {
         throw new Error(extractErrorMessage(error));
       }
@@ -316,8 +316,8 @@ export const useGetNotifications = () => {
     queryKey: ['notifications'],
     queryFn: async () => {
       try {
-        const response = await api.get('/notifications');
-        return response.data.data;
+        const response = await api.get<{ success: boolean; data: any[] }>('/notifications');
+        return response.data.data as any[];
       } catch (error) {
         throw new Error(extractErrorMessage(error));
       }

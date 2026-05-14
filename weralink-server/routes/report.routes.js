@@ -6,11 +6,13 @@ import {
   getWorkerHistory,
   getWorkerPerformance,
   getWorkerSkills,
+  getWorkerGigCompletion,
   getEmployerSpending,
   getEmployerGigActivity,
   getEmployerPaymentLedger,
   getEmployerWorkerReview,
   getEmployerHiringEfficiency,
+  getEmployerAssignmentReport,
   getAdminPlatformActivity,
   getAdminFinancialRecon,
   getAdminUserTrust,
@@ -23,6 +25,7 @@ router.get('/worker/earnings', requireAuth, requirePermission(PERMISSIONS.REPORT
 router.get('/worker/history', requireAuth, requirePermission(PERMISSIONS.REPORT_GENERATE), getWorkerHistory);
 router.get('/worker/performance', requireAuth, requirePermission(PERMISSIONS.REPORT_GENERATE), getWorkerPerformance);
 router.get('/worker/skills', requireAuth, requirePermission(PERMISSIONS.REPORT_GENERATE), getWorkerSkills);
+router.get('/worker/gig-completion/:assignmentId', requireAuth, requirePermission(PERMISSIONS.REPORT_GENERATE), getWorkerGigCompletion);
 
 // Employer reports (user-scoped)
 router.get('/employer/spending', requireAuth, requirePermission(PERMISSIONS.REPORT_GENERATE), getEmployerSpending);
@@ -30,6 +33,7 @@ router.get('/employer/gig-activity', requireAuth, requirePermission(PERMISSIONS.
 router.get('/employer/payment-ledger', requireAuth, requirePermission(PERMISSIONS.REPORT_GENERATE), getEmployerPaymentLedger);
 router.get('/employer/worker-review/:workerId', requireAuth, requirePermission(PERMISSIONS.REPORT_GENERATE), getEmployerWorkerReview);
 router.get('/employer/hiring-efficiency', requireAuth, requirePermission(PERMISSIONS.REPORT_GENERATE), getEmployerHiringEfficiency);
+router.get('/employer/assignment-report/:assignmentId', requireAuth, requirePermission(PERMISSIONS.REPORT_GENERATE), getEmployerAssignmentReport);
 
 // Admin reports
 router.get('/admin/platform-activity', requireAuth, requireRole([ROLES.ADMIN]), getAdminPlatformActivity);

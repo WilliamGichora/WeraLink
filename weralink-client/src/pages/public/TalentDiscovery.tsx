@@ -14,7 +14,6 @@ const TalentDiscoveryPage: React.FC = () => {
   const { user } = useAuth();
   const { data: featured, isLoading } = discoveryHooks.useGetFeatured();
 
-  // Roles that are allowed to see other workers
   const canSeeWorkers = !user || user.role === 'EMPLOYER' || user.role === 'ADMIN';
 
   const filteredWorkers = canSeeWorkers ? (featured?.featuredWorkers?.filter((w: any) => 

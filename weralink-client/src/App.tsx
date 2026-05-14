@@ -17,6 +17,7 @@ import {SubmitEvidence} from "./pages/worker/SubmitEvidence";
 import LearningHubPage from "./pages/worker/LearningHub";
 import ModuleViewPage from "./pages/worker/ModuleView";
 import EmployerDashboard from "./pages/employer/Dashboard";
+import EmployerProfile from "./pages/employer/EmployerProfile";
 import CreateGigPage from "./pages/employer/CreateGig";
 import ManageGigsPage from "./pages/employer/ManageGigs";
 import EmployerGigDetailPage from "./pages/employer/GigDetail";
@@ -27,6 +28,7 @@ import GigApplicants from "./pages/employer/GigApplicants";
 import ApplicantReview from "./pages/employer/ApplicantReview";
 import EmployerApplicants from "./pages/employer/EmployerApplicants";
 import NotificationsPage from "./pages/common/NotificationsPage";
+import SupportPage from "./pages/common/SupportPage";
 import { WorkerLayout } from "./layouts/WorkerLayout";
 import { EmployerLayout } from "./layouts/EmployerLayout";
 import { PublicLayout } from "./layouts/PublicLayout";
@@ -43,6 +45,10 @@ const EmployerReports = lazy(() => import("./pages/employer/EmployerReports"));
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const AdminAnalytics = lazy(() => import("./pages/admin/AdminAnalytics"));
 const AdminReports = lazy(() => import("./pages/admin/AdminReports"));
+const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
+const AdminDisputes = lazy(() => import("./pages/admin/AdminDisputes"));
+const AdminSupport = lazy(() => import("./pages/admin/AdminSupport"));
+const AdminLogin = lazy(() => import("./pages/admin/AdminLogin"));
 const WorkerRatings = lazy(() => import("./pages/worker/WorkerRatings"));
 const EmployerHistory = lazy(() => import("./pages/employer/EmployerHistory"));
 const EmployerRatings = lazy(() => import("./pages/employer/EmployerRatings"));
@@ -68,8 +74,10 @@ function App() {
             <Route path="/profile/:id" element={<PublicProfilePage />} />
             <Route path="/why-weralink" element={<WhyWeraLink />} />
             
+            
             <Route element={<PublicRoute />}>
               <Route path="/auth" element={<AuthPage />} />
+              <Route path="/admin/login" element={<Suspense fallback={<PageLoader />}><AdminLogin /></Suspense>} />
             </Route>
           </Route>
           
@@ -78,13 +86,14 @@ function App() {
               <Route index element={<WorkerDashboard />} />
               <Route path="gigs" element={<Navigate to="/marketplace" replace />} />
               <Route path="gigs/recommended" element={<RecommendedGigsPage />} />
-              <Route path="gigs/:id" element={<Navigate to="/gigs/:id" replace />} />
+              <Route path="gigs/:id" element={<GigDetailPage />} />
               <Route path="profile" element={<WorkerProfile />} />
               <Route path="applications" element={<MyApplications />} />
               <Route path="assignments" element={<ActiveAssignments />} />
               <Route path="history" element={<CompletedGigs />} />
                <Route path="assignments/:id/submit" element={<SubmitEvidence />} />
                <Route path="notifications" element={<NotificationsPage />} />
+               <Route path="support" element={<SupportPage />} />
                <Route path="profile/ratings" element={<Suspense fallback={<PageLoader />}><WorkerRatings /></Suspense>} />
                <Route path="analytics" element={<Suspense fallback={<PageLoader />}><WorkerAnalytics /></Suspense>} />
                <Route path="reports" element={<Suspense fallback={<PageLoader />}><WorkerReports /></Suspense>} />
@@ -96,6 +105,7 @@ function App() {
            <Route element={<ProtectedRoute allowedRoles={['EMPLOYER']} />}>
              <Route path="/employer" element={<EmployerLayout />}>
                <Route index element={<EmployerDashboard />} />
+               <Route path="profile" element={<EmployerProfile />} />
                <Route path="gigs" element={<ManageGigsPage />} />
                <Route path="gigs/new" element={<CreateGigPage />} />
                <Route path="gigs/:id" element={<EmployerGigDetailPage />} />
@@ -106,6 +116,7 @@ function App() {
                <Route path="reviews" element={<ReviewListPage />} />
                <Route path="assignments/review/:id" element={<ReviewSubmission />} />
                <Route path="notifications" element={<NotificationsPage />} />
+               <Route path="support" element={<SupportPage />} />
                <Route path="analytics" element={<Suspense fallback={<PageLoader />}><EmployerAnalytics /></Suspense>} />
                <Route path="reports" element={<Suspense fallback={<PageLoader />}><EmployerReports /></Suspense>} />
                 <Route path="history" element={<Suspense fallback={<PageLoader />}><EmployerHistory /></Suspense>} />
@@ -118,6 +129,9 @@ function App() {
               <Route index element={<Suspense fallback={<PageLoader />}><AdminDashboard /></Suspense>} />
               <Route path="analytics" element={<Suspense fallback={<PageLoader />}><AdminAnalytics /></Suspense>} />
               <Route path="reports" element={<Suspense fallback={<PageLoader />}><AdminReports /></Suspense>} />
+              <Route path="users" element={<Suspense fallback={<PageLoader />}><AdminUsers /></Suspense>} />
+              <Route path="disputes" element={<Suspense fallback={<PageLoader />}><AdminDisputes /></Suspense>} />
+              <Route path="support" element={<Suspense fallback={<PageLoader />}><AdminSupport /></Suspense>} />
             </Route>
           </Route>
 

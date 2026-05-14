@@ -45,6 +45,11 @@ export interface ProfileData {
     availabilityStatus: boolean;
     portfolio?: PortfolioItem[];
     verified: boolean;
+    companyName?: string;
+    companyLogo?: string;
+    industry?: string;
+    companyDescription?: string;
+    website?: string;
     user: {
         id: string;
         name: string;
@@ -52,6 +57,7 @@ export interface ProfileData {
         phone: string;
         role: 'WORKER' | 'EMPLOYER' | 'ADMIN';
         status: string;
+        createdAt?: string;
         skills?: UserSkill[];
         badges?: UserBadge[];
         ratingsRecv?: Rating[];

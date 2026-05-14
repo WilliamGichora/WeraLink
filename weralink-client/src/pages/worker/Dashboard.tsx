@@ -1,198 +1,199 @@
-import { Download, Wallet, ClipboardCheck, Star, Search, ArrowRight, Briefcase, MapPin, Landmark, ShieldCheck, ChevronRight, Loader2 } from "lucide-react";
+import { Receipt, Wallet, ClipboardCheck, Star, Search, ArrowRight, Landmark, ChevronRight, Loader2, History, GraduationCap } from "lucide-react";
 import { useWorkerAnalytics } from "@/features/analytics/api/analytics.api";
 import { useAuth } from "@/features/auth/context/AuthContext";
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { ActiveWorkSection } from "./components/ActiveWorkSection";
+import { RecommendedGigsSection } from "./components/RecommendedGigsSection";
+import { WorkerActivityFeed } from "./components/WorkerActivityFeed";
 
 export default function WorkerDashboard() {
   const { user } = useAuth();
-  const { data: analytics, isLoading } = useWorkerAnalytics(1); // 1 month period for "this month"
+  const { data: analytics, isLoading } = useWorkerAnalytics(1); 
 
   const kpis = analytics?.kpis || {};
+  
   return (
-    <>
-      <header className="bg-accent-dark text-white pt-10 pb-20 dark:bg-black relative overflow-hidden">
-        {/* Background shapes */}
+    <div className="min-h-screen bg-background-light dark:bg-black font-sans">
+      <header className="bg-accent-dark text-white pt-12 pb-12 dark:bg-black relative overflow-hidden">
         <div className="absolute inset-0 opacity-10 pointer-events-none">
             <div className="absolute -right-20 -top-20 w-96 h-96 bg-primary-wera rounded-full blur-3xl"></div>
             <div className="absolute left-20 bottom-10 w-64 h-64 bg-accent-text rounded-full blur-3xl"></div>
         </div>
         
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-            <div className="flex flex-col md:flex-row md:items-end justify-between mb-8">
+            <div className="flex flex-col md:flex-row md:items-center justify-between mb-10">
                 <div>
-                    <h1 className="text-3xl font-bold mb-1">Habari, {user?.name?.split(' ')[0] || 'Worker'}!</h1>
-                    <p className="text-gray-400">Here's how you are performing today on WeraLink.</p>
+                    <h1 className="text-4xl font-black mb-2 tracking-tight">Habari, {user?.name?.split(' ')[0] || 'Worker'}!</h1>
+                    <p className="text-gray-400 text-lg">Your WeraLink performance at a glance.</p>
                 </div>
-                <div className="mt-4 md:mt-0">
-                    <button className="inline-flex items-center px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/10 rounded-lg text-sm font-medium transition-colors backdrop-blur-sm">
-                        <Download className="w-4 h-4 mr-2" />
-                        Download Statement
-                    </button>
+                <div className="mt-6 md:mt-0 flex gap-3">
+                    <Link to={"/worker/reports"} className="inline-flex items-center px-5 py-2.5 bg-white/10 hover:bg-white/20 border border-white/10 rounded-xl text-sm font-bold transition-all backdrop-blur-md active:scale-95">
+                        <Receipt className="w-4 h-4 mr-2" />
+                        Reports
+                    </Link>
                 </div>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        
-                <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 hover:bg-white/10 transition-all duration-300 group">
+                <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-[32px] p-8 hover:bg-white/10 transition-all duration-500 group shadow-2xl">
                     <div className="flex justify-between items-start">
                         <div>
-                            <p className="text-gray-400 text-sm font-medium mb-1">Earnings (This Month)</p>
-                            <h3 className="text-3xl font-bold text-white group-hover:text-primary-wera transition-colors">
-                              {isLoading ? <Loader2 className="w-6 h-6 animate-spin text-gray-400 mt-2" /> : `KES ${(kpis.periodEarnings || 0).toLocaleString()}`}
+                            <p className="text-gray-400 text-xs font-black uppercase tracking-widest mb-2">Monthly Earnings</p>
+                            <h3 className="text-4xl font-black text-white group-hover:text-primary-wera transition-colors tracking-tighter">
+                              {isLoading ? <Loader2 className="w-8 h-8 animate-spin text-gray-400" /> : `KES ${(kpis.periodEarnings || 0).toLocaleString()}`}
                             </h3>
                         </div>
-                        <div className="bg-primary-wera/20 p-2 rounded-lg">
+                        <div className="bg-primary-wera/20 p-3 rounded-2xl">
                             <Wallet className="w-6 h-6 text-primary-wera" />
                         </div>
                     </div>
-                    <div className="mt-4 flex items-center text-xs text-gray-400">
-                        <span>All time: KES {(kpis.totalEarnings || 0).toLocaleString()}</span>
+                    <div className="mt-6 flex items-center text-xs text-gray-400 font-medium">
+                        <span className="bg-white/10 px-2 py-1 rounded-md">Total: KES {(kpis.totalEarnings || 0).toLocaleString()}</span>
                     </div>
                 </div>
                 
-                <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 hover:bg-white/10 transition-all duration-300 group">
+                <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-[32px] p-8 hover:bg-white/10 transition-all duration-500 group shadow-2xl">
                     <div className="flex justify-between items-start">
                         <div>
-                            <p className="text-gray-400 text-sm font-medium mb-1">Completed Gigs (This Month)</p>
-                            <h3 className="text-3xl font-bold text-white group-hover:text-primary-wera transition-colors">
-                              {isLoading ? <Loader2 className="w-6 h-6 animate-spin text-gray-400 mt-2" /> : (kpis.periodGigsCompleted || 0)}
+                            <p className="text-gray-400 text-xs font-black uppercase tracking-widest mb-2">Gigs Completed</p>
+                            <h3 className="text-4xl font-black text-white group-hover:text-blue-400 transition-colors tracking-tighter">
+                              {isLoading ? <Loader2 className="w-8 h-8 animate-spin text-gray-400" /> : (kpis.periodGigsCompleted || 0)}
                             </h3>
                         </div>
-                        <div className="bg-blue-500/20 p-2 rounded-lg">
+                        <div className="bg-blue-500/20 p-3 rounded-2xl">
                             <ClipboardCheck className="w-6 h-6 text-blue-400" />
                         </div>
                     </div>
-                    <div className="mt-4 flex items-center text-xs text-gray-400">
-                        <span>All time completed: {kpis.totalGigsCompleted || 0}</span>
+                    <div className="mt-6 flex items-center text-xs text-gray-400 font-medium">
+                        <span className="bg-white/10 px-2 py-1 rounded-md">All time applied: {kpis.totalGigsCompleted || 0}</span>
                     </div>
                 </div>
                 
-                <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 hover:bg-white/10 transition-all duration-300 group">
+                <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-[32px] p-8 hover:bg-white/10 transition-all duration-500 group shadow-2xl">
                     <div className="flex justify-between items-start">
                         <div>
-                            <p className="text-gray-400 text-sm font-medium mb-1">Rating</p>
-                            <h3 className="text-3xl font-bold text-white group-hover:text-primary-wera transition-colors">
-                              {isLoading ? <Loader2 className="w-6 h-6 animate-spin text-gray-400 mt-2" /> : (
-                                <>{kpis.avgRating || '—'}<span className="text-lg text-gray-500 font-normal">/5.0</span></>
+                            <p className="text-gray-400 text-xs font-black uppercase tracking-widest mb-2">Quality Rating</p>
+                            <h3 className="text-4xl font-black text-white group-hover:text-yellow-400 transition-colors tracking-tighter">
+                              {isLoading ? <Loader2 className="w-8 h-8 animate-spin text-gray-400" /> : (
+                                <>{kpis.avgRating || '—'}<span className="text-xl text-gray-500 font-normal">/5.0</span></>
                               )}
                             </h3>
                         </div>
-                        <div className="bg-yellow-500/20 p-2 rounded-lg">
+                        <div className="bg-yellow-500/20 p-3 rounded-2xl">
                             <Star className="w-6 h-6 text-yellow-400" />
                         </div>
                     </div>
-                    <div className="mt-4 flex items-center text-xs text-gray-400">
-                        <span>Based on {kpis.totalRatings || 0} reviews</span>
+                    <div className="mt-6 flex items-center text-xs text-gray-400 font-medium">
+                        <span className="bg-white/10 px-2 py-1 rounded-md">From {kpis.totalRatings || 0} reviews</span>
                     </div>
                 </div>
             </div>
         </div>
       </header>
 
-      <main className="grow -mt-10 pb-16 z-20 relative">
+      <main className="grow pb-24 z-20 relative mt-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 mb-8 flex flex-col md:flex-row gap-4 items-center justify-between border border-gray-100 dark:border-gray-700">
-                <div className="relative w-full md:w-96">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input type="text" placeholder="Search gigs by title or location..." className="w-full pl-10 pr-4 py-2 rounded-lg border-gray-200 focus:border-primary-wera focus:ring focus:ring-primary-wera/20 transition-shadow bg-background-light dark:bg-background-dark-wera dark:border-gray-600 dark:text-white" />
-                </div>
-                <div className="flex gap-2 overflow-x-auto w-full md:w-auto pb-2 md:pb-0 scrollbar-hide">
-                    <button className="px-4 py-2 rounded-full bg-accent-dark text-white text-sm font-medium whitespace-nowrap shadow-sm hover:bg-accent-dark/90 transition-colors">All Gigs</button>
-                    <button className="px-4 py-2 rounded-full bg-gray-100 text-text-main text-sm font-medium whitespace-nowrap hover:bg-gray-200 transition-colors dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600">Delivery</button>
-                    <button className="px-4 py-2 rounded-full bg-gray-100 text-text-main text-sm font-medium whitespace-nowrap hover:bg-gray-200 transition-colors dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600">Writing</button>
-                </div>
-            </div>
-            
             <div className="flex flex-col lg:flex-row gap-8">
-                <div className="w-full lg:w-3/4">
-                    <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-xl font-bold text-accent-dark dark:text-white">Recommended For You</h2>
-                        <a href="#" className="text-primary-wera text-sm font-medium hover:underline flex items-center">
-                            View all
-                            <ArrowRight className="w-4 h-4 ml-1" />
-                        </a>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                        {/* Gig Card 1 */}
-                        <div className="bg-card-bg-wera dark:bg-gray-800 rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300 border border-transparent hover:border-primary-wera/20 flex flex-col h-full">
-                            <div className="relative h-32 w-full overflow-hidden bg-gray-300">
-                                <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm px-2 py-1 rounded text-xs font-bold text-accent-text uppercase tracking-wider shadow-sm">Data Entry</div>
-                            </div>
-                            <div className="p-5 flex flex-col grow text-text-main">
-                                <h3 className="font-bold text-lg dark:text-white line-clamp-1 mb-2">Receipt Transcription</h3>
-                                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 flex items-center">
-                                    <Briefcase className="w-4 h-4 mr-1 text-gray-400" /> FastTrack Logistics
-                                </p>
-                                <div className="mt-auto pt-4 border-t border-gray-200/50 dark:border-gray-700 flex items-center justify-between">
-                                    <div>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400">Pay</p>
-                                        <p className="text-lg font-bold text-primary-wera">KES 500</p>
-                                    </div>
-                                    <button className="bg-primary-wera hover:bg-primary-dark text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm shadow-primary-wera/30">Apply</button>
-                                </div>
-                            </div>
+                {/* Left Column: Main Activity */}
+                <div className="w-full lg:w-3/4 space-y-8">
+                    {/* Active Work Snapshot */}
+                    <section>
+                        <div className="flex items-center justify-between mb-4 px-2">
+                            <h2 className="text-2xl font-black text-accent-dark dark:text-white tracking-tight flex items-center gap-2">
+                                Active Work Queue
+                                <span className="bg-primary-wera/10 text-primary-wera text-xs px-2 py-0.5 rounded-full uppercase tracking-widest font-black">Urgent</span>
+                            </h2>
+                            <Link to="/worker/assignments" className="text-primary-wera text-sm font-bold hover:underline flex items-center group">
+                                View Full Queue
+                                <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
+                            </Link>
                         </div>
-                        
-                        {/* Gig Card 2 */}
-                        <div className="bg-card-bg-wera dark:bg-gray-800 rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300 border border-transparent hover:border-primary-wera/20 flex flex-col h-full">
-                            <div className="relative h-32 w-full overflow-hidden bg-gray-300">
-                                <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm px-2 py-1 rounded text-xs font-bold text-accent-text uppercase tracking-wider shadow-sm">Delivery</div>
-                            </div>
-                            <div className="p-5 flex flex-col grow text-text-main">
-                                <h3 className="font-bold text-lg dark:text-white line-clamp-1 mb-2">Westlands Package Drop</h3>
-                                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 flex items-center">
-                                    <MapPin className="w-4 h-4 mr-1 text-gray-400" /> Westlands, Nairobi
-                                </p>
-                                <div className="mt-auto pt-4 border-t border-gray-200/50 dark:border-gray-700 flex items-center justify-between">
-                                    <div>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400">Pay</p>
-                                        <p className="text-lg font-bold text-primary-wera">KES 850</p>
-                                    </div>
-                                    <button className="bg-primary-wera hover:bg-primary-dark text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm shadow-primary-wera/30">Apply</button>
-                                </div>
-                            </div>
+                        <ActiveWorkSection />
+                    </section>
+
+                    {/* Recommendations Snapshot */}
+                    <section>
+                        <div className="flex items-center justify-between mb-4 px-2">
+                            <h2 className="text-2xl font-black text-accent-dark dark:text-white tracking-tight">Top Algorithm Matches</h2>
+                            <Link to="/worker/gigs/recommended" className="text-primary-wera text-sm font-bold hover:underline flex items-center group">
+                                Explore All
+                                <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
+                            </Link>
                         </div>
-                    </div>
+                        <RecommendedGigsSection />
+                    </section>
                 </div>
                 
-                <aside className="w-full lg:w-1/4 flex flex-col gap-6">
-                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
-                        <h3 className="font-bold text-accent-dark dark:text-white mb-4">Quick Actions</h3>
-                        <div className="space-y-3">
-                            <button className="w-full flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-700 hover:bg-card-bg-wera dark:hover:bg-gray-600 transition-colors group">
-                                <div className="flex items-center gap-3">
-                                    <div className="bg-white dark:bg-gray-600 p-2 rounded-md shadow-sm group-hover:text-primary-wera transition-colors">
-                                        <Landmark className="w-4 h-4 text-text-main" />
+                {/* Right Column: Actions & Feed */}
+                <aside className="w-full lg:w-1/4 space-y-6">
+                    {/* Primary Workflows */}
+                    <div className="bg-white dark:bg-gray-800 rounded-[32px] shadow-xl border border-slate-100 dark:border-gray-700 p-8">
+                        <h3 className="font-black text-accent-dark dark:text-white text-lg mb-6 uppercase tracking-widest border-b border-slate-50 dark:border-gray-700 pb-4">Quick Actions</h3>
+                        <div className="space-y-4">
+                            <Link to="/worker/analytics" className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 dark:bg-gray-900/50 hover:bg-primary-wera/5 dark:hover:bg-primary-wera/10 transition-all group border border-transparent hover:border-primary-wera/10">
+                                <div className="flex items-center gap-4">
+                                    <div className="bg-white dark:bg-gray-800 p-2.5 rounded-xl shadow-sm group-hover:text-primary-wera transition-colors">
+                                        <Landmark className="w-5 h-5" />
                                     </div>
-                                    <span className="text-sm font-medium text-text-main dark:text-gray-200">Withdraw Funds</span>
+                                    <span className="text-sm font-bold text-accent-dark dark:text-gray-200">Earnings & Analytics</span>
                                 </div>
-                                <ChevronRight className="w-4 h-4 text-gray-400" />
-                            </button>
-                            <button className="w-full flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-700 hover:bg-card-bg-wera dark:hover:bg-gray-600 transition-colors group">
-                                <div className="flex items-center gap-3">
-                                    <div className="bg-white dark:bg-gray-600 p-2 rounded-md shadow-sm group-hover:text-primary-wera transition-colors">
-                                        <ShieldCheck className="w-4 h-4 text-text-main" />
+                                <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-primary-wera" />
+                            </Link>
+                            
+                            <Link to="/marketplace" className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 dark:bg-gray-900/50 hover:bg-primary-wera/5 dark:hover:bg-primary-wera/10 transition-all group border border-transparent hover:border-primary-wera/10">
+                                <div className="flex items-center gap-4">
+                                    <div className="bg-white dark:bg-gray-800 p-2.5 rounded-xl shadow-sm group-hover:text-primary-wera transition-colors">
+                                        <Search className="w-5 h-5" />
                                     </div>
-                                    <span className="text-sm font-medium text-text-main dark:text-gray-200">Update Profile</span>
+                                    <span className="text-sm font-bold text-accent-dark dark:text-gray-200">Browse Marketplace</span>
                                 </div>
-                                <ChevronRight className="w-4 h-4 text-gray-400" />
-                            </button>
+                                <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-primary-wera" />
+                            </Link>
+
+                            <Link to="/worker/learning-hub" className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 dark:bg-gray-900/50 hover:bg-primary-wera/5 dark:hover:bg-primary-wera/10 transition-all group border border-transparent hover:border-primary-wera/10">
+                                <div className="flex items-center gap-4">
+                                    <div className="bg-white dark:bg-gray-800 p-2.5 rounded-xl shadow-sm group-hover:text-primary-wera transition-colors">
+                                        <GraduationCap className="w-5 h-5" />
+                                    </div>
+                                    <span className="text-sm font-bold text-accent-dark dark:text-gray-200">Learning Hub</span>
+                                </div>
+                                <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-primary-wera" />
+                            </Link>
+
+                            <Link to="/worker/history" className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 dark:bg-gray-900/50 hover:bg-primary-wera/5 dark:hover:bg-primary-wera/10 transition-all group border border-transparent hover:border-primary-wera/10">
+                                <div className="flex items-center gap-4">
+                                    <div className="bg-white dark:bg-gray-800 p-2.5 rounded-xl shadow-sm group-hover:text-primary-wera transition-colors">
+                                        <History className="w-5 h-5" />
+                                    </div>
+                                    <span className="text-sm font-bold text-accent-dark dark:text-gray-200">Work History</span>
+                                </div>
+                                <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-primary-wera" />
+                            </Link>
                         </div>
                     </div>
                     
-                    <div className="bg-linear-to-br from-accent-dark to-black rounded-xl shadow-lg p-6 text-white relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-24 h-24 bg-primary-wera/20 rounded-bl-full -mr-4 -mt-4"></div>
-                        <h3 className="font-bold text-lg mb-2 relative z-10">Boost your earnings!</h3>
-                        <p className="text-gray-300 text-sm mb-4 relative z-10">Complete 5 gigs this week on WeraLink to earn a <span className="text-primary-wera font-bold">KES 1,000 bonus</span>.</p>
-                        <div className="w-full bg-gray-700 rounded-full h-2 mb-2 relative z-10">
-                            <div className="bg-primary-wera h-2 rounded-full w-[60%]"></div>
+                    {/* Activity Feed */}
+                    <div className="bg-white dark:bg-gray-800 rounded-[32px] shadow-xl border border-slate-100 dark:border-gray-700 p-8">
+                        <h3 className="font-black text-accent-dark dark:text-white text-lg mb-6 uppercase tracking-widest">Activity</h3>
+                        <WorkerActivityFeed />
+                    </div>
+
+                    {/* Bonus Card */}
+                    <div className="bg-linear-to-br from-accent-dark to-black rounded-[32px] shadow-2xl p-8 text-white relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-primary-wera/20 rounded-bl-full -mr-8 -mt-8 group-hover:bg-primary-wera/30 transition-colors"></div>
+                        <div className="relative z-10">
+                            <h3 className="font-black text-2xl mb-2 tracking-tighter">Cold Start Boost</h3>
+                            <p className="text-gray-300 text-sm mb-6 leading-relaxed">Complete your next verification module to increase your match score by <span className="text-primary-wera font-black">15%</span>.</p>
+                            <Button asChild className="w-full bg-primary-wera hover:bg-primary-dark text-white font-black rounded-2xl py-6 shadow-xl shadow-primary-wera/20 transition-all active:scale-95">
+                                <Link to="/worker/learning-hub">Go to Learning Hub</Link>
+                            </Button>
                         </div>
-                        <p className="text-xs text-gray-400 relative z-10">3/5 gigs completed</p>
                     </div>
                 </aside>
             </div>
         </div>
       </main>
-    </>
+    </div>
   );
 }

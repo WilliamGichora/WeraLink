@@ -108,14 +108,14 @@ const PublicProfilePage: React.FC = () => {
                 
                 <div className="grid grid-cols-2 gap-4 w-full px-4">
                   <div className="bg-slate-50 p-5 rounded-[24px] border border-slate-100 group hover:border-primary-wera/20 transition-all">
-                    <p className="text-3xl font-black text-accent-dark group-hover:text-primary-wera transition-colors">{profile.stats.completions}</p>
-                    <p className="text-[10px] text-slate-400 uppercase font-black tracking-tighter">Gigs Completed</p>
+                    <p className="text-3xl font-black text-accent-dark group-hover:text-primary-wera transition-colors">{profile.stats?.completions || 0}</p>
+                    <p className="text-[10px] text-slate-400 uppercase font-black tracking-tighter">{isWorker ? 'Gigs Completed' : 'Gigs Posted'}</p>
                   </div>
                   <div className="bg-slate-50 p-5 rounded-[24px] border border-slate-100 group hover:border-amber-200 transition-all">
                     <p className="text-3xl font-black text-accent-dark group-hover:text-amber-500 transition-colors flex items-center justify-center gap-1">
-                      4.9 <Star className="w-4 h-4 fill-current" />
+                      {profile.stats?.rating || 4.9} <Star className="w-4 h-4 fill-current" />
                     </p>
-                    <p className="text-[10px] text-slate-400 uppercase font-black tracking-tighter">Professional Rating</p>
+                    <p className="text-[10px] text-slate-400 uppercase font-black tracking-tighter">{isWorker ? 'Professional Rating' : 'Employer Rating'}</p>
                   </div>
                 </div>
 
@@ -197,11 +197,12 @@ const PublicProfilePage: React.FC = () => {
                 Professional Journey
               </h2>
               <p className="text-slate-600 text-xl leading-[1.8] font-medium whitespace-pre-wrap relative z-10">
-                {profile.bio || "This professional is a verified member of the WeraLink community with a track record of high-performance task execution and consistent reliability."}
+                {isWorker ? (profile.bio || "This professional is a verified member of the WeraLink community with a track record of high-performance task execution and consistent reliability.") : (profile.companyDescription || profile.bio || "Verified Employer on WeraLink.")}
               </p>
             </Card>
 
             {/* Skills & Badges Grid */}
+            {isWorker ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {/* Skills */}
               <Card className="border-none shadow-xl rounded-[40px] p-10 bg-white">
@@ -258,6 +259,43 @@ const PublicProfilePage: React.FC = () => {
                 </div>
               </Card>
             </div>
+            ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {/* Industry */}
+              {profile.industry && (
+              <Card className="border-none shadow-xl rounded-[40px] p-10 bg-white">
+                <h3 className="text-2xl font-black text-accent-dark mb-8 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
+                    <Briefcase className="w-5 h-5 text-blue-600" />
+                  </div>
+                  Industry
+                </h3>
+                <div className="flex flex-wrap gap-3">
+                  <div className="px-5 py-2.5 rounded-2xl border-2 text-sm font-black flex items-center gap-2.5 bg-primary-wera/5 border-primary-wera/10 text-primary-wera shadow-sm">
+                    {profile.industry}
+                  </div>
+                </div>
+              </Card>
+              )}
+
+              {/* Website */}
+              {profile.website && (
+              <Card className="border-none shadow-xl rounded-[40px] p-10 bg-white">
+                <h3 className="text-2xl font-black text-accent-dark mb-8 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center">
+                    <Award className="w-5 h-5 text-amber-500" />
+                  </div>
+                  Website
+                </h3>
+                <div className="space-y-6">
+                   <a href={profile.website} target="_blank" rel="noreferrer" className="text-primary-wera font-bold hover:underline">
+                      {profile.website}
+                   </a>
+                </div>
+              </Card>
+              )}
+            </div>
+            )}
 
             {/* Active Gigs (For Employers) */}
             {profile.role === 'EMPLOYER' && profile.activeGigs && profile.activeGigs.length > 0 && (

@@ -39,9 +39,15 @@ export function ForgotPasswordForm({ onBackToLogin }: { onBackToLogin: () => voi
     setErrorMsg("");
     setSuccessMsg("");
     try {
-      await verifyOTP(authEmail, data.otp, 'recovery', false);
-      setStep('NEW_PASSWORD');
-      setSuccessMsg("Code verified! Please enter your new password.");
+      const result = await verifyOTP(authEmail, data.otp, 'recovery', false);
+      if (result?.passwordResetRequired) {
+        setStep('NEW_PASSWORD');
+        setSuccessMsg("Code verified! Please enter your new password.");
+      } else {
+        // Fallback: if somehow it returned a user, still go to password step
+        setStep('NEW_PASSWORD');
+        setSuccessMsg("Code verified! Please enter your new password.");
+      }
     } catch (err: any) {
       setErrorMsg(err.response?.data?.errors?.[0]?.message || "Invalid verification code.");
     } finally {

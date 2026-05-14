@@ -8,7 +8,6 @@ import {
   ArrowRightLeft,
   GraduationCap,
   Award,
-  Medal,
   Settings,
   Users,
   FileText,
@@ -18,15 +17,15 @@ import {
   BarChart,
   BarChart3,
   Target,
-  History
+  History,
+  type LucideIcon
 } from "lucide-react";
-import React from "react";
 
 export interface NavSubLink {
   title: string;
   href: string;
   description?: string;
-  icon?: React.ElementType;
+  icon?: LucideIcon;
 }
 
 export interface NavCategory {

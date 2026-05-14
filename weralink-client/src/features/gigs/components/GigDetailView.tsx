@@ -12,16 +12,23 @@ import {
 } from 'lucide-react';
 import { RecommendedWorkersPanel } from './RecommendedWorkersPanel';
 import { useProfile } from '@/features/profile/hooks/useProfile';
+import { getPublicEmployerProfile } from '@/features/profile/api/profile.api';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { IntermediaryModal } from '@/components/auth/IntermediaryModal';
 import { toast } from 'sonner';
 
-// Function to calculate match score based on worker's actual skills vs gig's required skills.
 const calculateMatchScore = (gigSkillIds: string[], workerSkillIds: string[]) => {
     if (!gigSkillIds || gigSkillIds.length === 0) return 100;
     if (!workerSkillIds || workerSkillIds.length === 0) return 0;
     const matched = gigSkillIds.filter(id => workerSkillIds.includes(id));
     return Math.round((matched.length / gigSkillIds.length) * 100);
+};
+
+const getScoreColor = (score: number) => {
+    if (score >= 80) return { bg: 'bg-green-100', text: 'text-green-700' };
+    if (score >= 60) return { bg: 'bg-amber-100', text: 'text-amber-700' };
+    return { bg: 'bg-slate-100', text: 'text-slate-700' };
 };
 
 interface GigDetailViewProps {
@@ -39,6 +46,12 @@ export const GigDetailView: React.FC<GigDetailViewProps> = ({ viewerRole = 'work
     // Auth & Skills data
     const { data: gig, isLoading, isError } = gigHooks.useGetGigById(id);
     const { data: profile } = useProfile({ enabled: isAuthenticated }); 
+    
+    const { data: employerProfile } = useQuery({
+        queryKey: ['publicEmployerProfile', gig?.employerId],
+        queryFn: () => getPublicEmployerProfile(gig.employerId),
+        enabled: !!gig?.employerId,
+    });
 
     const applyMutation = useApplyForGig();
 
@@ -220,27 +233,33 @@ export const GigDetailView: React.FC<GigDetailViewProps> = ({ viewerRole = 'work
                         </div>
                         <CardContent className="p-6 border-t border-slate-50">
                             <div className="flex items-start gap-4">
-                                <div className="w-14 h-14 rounded-xl bg-slate-100 flex items-center justify-center border border-slate-200 shrink-0">
-                                    <UserCircle className="w-8 h-8 text-slate-400" />
+                                <div className="w-14 h-14 rounded-xl bg-slate-100 flex items-center justify-center border border-slate-200 shrink-0 overflow-hidden">
+                                    {employerProfile?.companyLogo ? (
+                                        <img src={employerProfile.companyLogo} alt="Company Logo" className="w-full h-full object-cover" />
+                                    ) : (
+                                        <Building2 className="w-8 h-8 text-slate-400" />
+                                    )}
                                 </div>
                                 <div className="grow">
                                     <div className="flex items-center justify-between">
-                                        <h3 className="font-bold text-text-main text-lg">{gig.employer?.name || 'WeraLink Member'}</h3>
+                                        <h3 className="font-bold text-text-main text-lg">{employerProfile?.companyName || gig.employer?.name || 'WeraLink Member'}</h3>
                                         <Button variant="link" className="text-primary-wera text-xs p-0 h-auto font-bold" onClick={() => navigate(`/profile/${gig.employerId}`)}>
                                             View Public Profile
                                         </Button>
                                     </div>
                                     <div className="flex items-center gap-1 text-yellow-500 my-1">
                                         <Star className="w-4 h-4 fill-current" />
-                                        <Star className="w-4 h-4 fill-current" />
-                                        <Star className="w-4 h-4 fill-current" />
-                                        <Star className="w-4 h-4 fill-current" />
-                                        <Star className="w-4 h-4 fill-current" opacity={0.5} />
-                                        <span className="font-bold text-text-main text-sm ml-1">4.5 Rating</span>
+                                        <span className="font-bold text-text-main text-sm ml-1">{employerProfile?.user?.avgRating || 'New'} Rating</span>
+                                        <span className="text-xs text-text-main/50 ml-1">({employerProfile?.user?.totalRatings || 0} reviews)</span>
                                     </div>
-                                    <p className="text-sm text-text-main/60 mt-1">
-                                        Frequent hirer on WeraLink with high completion and payment rates.
+                                    <p className="text-sm text-text-main/60 mt-1 line-clamp-2">
+                                        {employerProfile?.companyDescription || 'Frequent hirer on WeraLink with high completion and payment rates.'}
                                     </p>
+                                    {employerProfile?.industry && (
+                                        <p className="text-xs text-text-main/40 mt-1 font-bold tracking-widest uppercase">
+                                            {employerProfile.industry}
+                                        </p>
+                                    )}
                                 </div>
                             </div>
                         </CardContent>
@@ -351,7 +370,7 @@ export const GigDetailView: React.FC<GigDetailViewProps> = ({ viewerRole = 'work
                         <CardHeader className="pb-2">
                             <CardTitle className="text-lg font-bold text-accent-dark flex items-center justify-between">
                                 Skills Required
-                                <span className={`text-sm px-2 py-1 rounded bg-slate-100 font-bold ${matchScore >= 80 ? "text-green-600" : "text-amber-600"}`}>
+                                <span className={`text-sm px-2 py-1 rounded font-bold ${getScoreColor(matchScore).bg} ${getScoreColor(matchScore).text}`}>
                                     {matchScore}% Match
                                 </span>
                             </CardTitle>

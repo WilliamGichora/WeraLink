@@ -8,8 +8,12 @@ import { StatsSection } from './components/StatsSection';
 import { MatchingPreview } from './components/MatchingPreview';
 import { LearningHubPreview } from './components/LearningHubPreview';
 import { FeaturedShowcase } from './components/FeaturedShowcase';
+import { useAuth } from '@/features/auth/context/AuthContext';
+import { WeraLinkLogo } from '@/components/ui/WeraLinkLogo';
 
 const LandingPage: React.FC = () => {
+  const { user } = useAuth();
+
   return (
     <div className="flex flex-col min-h-screen bg-accent-dark text-white overflow-hidden font-sans">
       
@@ -28,6 +32,10 @@ const LandingPage: React.FC = () => {
                 <Sparkles className="h-4 w-4 text-primary-wera" />
                 <span className="text-xs font-bold tracking-widest uppercase text-primary-wera">The Future of Kenya Gig Economy</span>
               </div>
+
+              <div className="mb-6">
+                <WeraLinkLogo variant="primary" size="lg" />
+              </div>
               
               <h1 className="text-6xl md:text-8xl font-bold tracking-tighter mb-8 leading-[0.9]">
                 Where <span className="text-primary-wera">Elite</span> <br />
@@ -40,11 +48,13 @@ const LandingPage: React.FC = () => {
                 Experience seamless hiring, secure payments, and uncompromised quality.
               </p>
               
-              <div className="flex flex-col sm:flex-row items-center gap-6">
+              <div className="flex flex-col sm:flex-row items-center gap-6 md:ml-2">
                 <Button size="lg" className="h-16 px-10 bg-primary-wera hover:bg-primary-wera/90 text-white rounded-2xl text-xl font-bold shadow-2xl shadow-primary-wera/40 group transition-all hover:scale-105" asChild>
-                  <Link to="/marketplace">
-                    Explore Marketplace <ArrowRight className="ml-2 h-6 w-6 group-hover:translate-x-1 transition-transform" />
-                  </Link>
+                  {user?.role !== "EMPLOYER" && (
+                    <Link to="/marketplace">
+                      Explore Marketplace <ArrowRight className="ml-2 h-6 w-6 group-hover:translate-x-1 transition-transform" />
+                    </Link>
+                  )} 
                 </Button>
                 <Link to="/talent" className="text-white hover:text-primary-wera font-bold text-lg flex items-center gap-2 transition-colors group">
                    Find Elite Talent <ArrowRight className="h-5 w-5 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />

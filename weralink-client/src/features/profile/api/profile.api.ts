@@ -25,3 +25,8 @@ export const removeProfileSkill = async (skillId: string) => {
     const { data } = await api.delete(`/profiles/me/skills/${skillId}`);
     return data.data;
 };
+
+export const getPublicEmployerProfile = async (userId: string) => {
+    const { data } = await api.get(`/profiles/employer/${userId}`);
+    return data.data.profile;
+};

@@ -334,7 +334,13 @@ function WorkerAssignmentRow({ assignment, onRate, onViewReceipt, onRefresh }: {
           </Button>
         )}
         
-        <Button variant="outline" asChild className="h-11 w-11 p-0 rounded-xl border-slate-200 hover:bg-white hover:border-primary-wera hover:text-primary-wera transition-all">
+        <Button variant="outline" asChild title="View Submission" className="h-11 w-11 p-0 rounded-xl border-slate-200 hover:bg-white hover:border-primary-wera hover:text-primary-wera transition-all">
+          <Link to={`/employer/assignments/review/${assignment.id}`}>
+            <FileText className="w-5 h-5" />
+          </Link>
+        </Button>
+        
+        <Button variant="outline" asChild title="View Global Applicants" className="h-11 w-11 p-0 rounded-xl border-slate-200 hover:bg-white hover:border-primary-wera hover:text-primary-wera transition-all">
           <Link to={`/employer/applicants-global`}>
             <User className="w-5 h-5" />
           </Link>

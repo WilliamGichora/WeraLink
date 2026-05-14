@@ -1,10 +1,13 @@
 import { Outlet, NavLink } from "react-router-dom";
 import { AppNavbar } from "../components/layout/AppNavbar";
 import { AppFooter } from "../components/layout/AppFooter";
-import { LayoutDashboard, BarChart3, FileText, Shield } from "lucide-react";
+import { LayoutDashboard, BarChart3, FileText, Shield, Users, Scale, LifeBuoy } from "lucide-react";
 
 const adminNav = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard, end: true },
+  { to: "/admin/users", label: "Users", icon: Users },
+  { to: "/admin/disputes", label: "Disputes", icon: Scale },
+  { to: "/admin/support", label: "Support", icon: LifeBuoy },
   { to: "/admin/analytics", label: "Analytics", icon: BarChart3 },
   { to: "/admin/reports", label: "Reports", icon: FileText },
 ];
@@ -50,7 +53,6 @@ export function AdminLayout() {
           <Outlet />
         </main>
       </div>
-      <AppFooter />
     </div>
   );
 }

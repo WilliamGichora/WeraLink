@@ -9,6 +9,13 @@ import { toast } from 'sonner';
 import { ReceiptModal } from '@/components/execution/ReceiptModal';
 import { RatingModal } from '@/features/ratings/components/RatingModal';
 import { useCheckRating } from '@/features/ratings/api/rating.api';
+import { RaiseDisputeModal } from '@/features/disputes/components/RaiseDisputeModal';
+
+import { ReportShell } from '@/features/reports/components/ReportShell';
+import { EmployerAssignmentReport } from '@/features/reports/components/EmployerAssignmentReport';
+import { downloadReportAsPdf } from '@/features/reports/utils/downloadPdf';
+import { useRef } from 'react';
+import { api } from '@/lib/api';
 
 export default function ReviewSubmission() {
   const { id } = useParams<{ id: string }>();
@@ -18,11 +25,43 @@ export default function ReviewSubmission() {
   const { mutateAsync: getDownloadUrl } = useGetDownloadUrl();
   const { mutateAsync: retryPayout, isPending: isRetrying } = useRetryPayout();
   const [reason, setReason] = useState('');
-  const [showReasonInput, setShowReasonInput] = useState<'REVISE' | 'DISPUTE' | 'APPROVE' | null>(null);
+  const [showReasonInput, setShowReasonInput] = useState<'REVISE' | 'APPROVE' | null>(null);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
   const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
+  const [isDisputeModalOpen, setIsDisputeModalOpen] = useState(false);
   const { data: transaction } = useGetTransactionByAssignment(assignment?.id);
   const { data: ratingStatus } = useCheckRating(assignment?.status === 'PAID' ? assignment?.id : undefined);
+
+  // Report state
+  const reportRef = useRef<HTMLDivElement>(null);
+  const [downloadingReport, setDownloadingReport] = useState(false);
+  const [reportData, setReportData] = useState<any>(null);
+
+  const handleDownloadReport = async (assignmentId: string, gigTitle: string) => {
+    setDownloadingReport(true);
+    try {
+      const res = await api.get(`/reports/employer/assignment-report/${assignmentId}`);
+      setReportData(res.data.data);
+      
+      // Allow React to render the hidden report component before capturing PDF
+      setTimeout(async () => {
+        if (reportRef.current) {
+          try {
+            await downloadReportAsPdf(reportRef.current, `WeraLink-Assignment-${gigTitle.replace(/\s+/g, '-')}`);
+            toast.success('Report downloaded successfully!');
+          } catch (e) {
+            toast.error('PDF generation failed.');
+          }
+        }
+        setDownloadingReport(false);
+        setReportData(null);
+      }, 800);
+    } catch (err) {
+      toast.error('Failed to fetch report data.');
+      setDownloadingReport(false);
+      setReportData(null);
+    }
+  };
 
   const handleDownload = async (assignmentId: string, filePath: string) => {
     try {
@@ -54,8 +93,8 @@ export default function ReviewSubmission() {
     }
   };
 
-  const handleAction = async (action: 'APPROVE' | 'REVISE' | 'DISPUTE') => {
-    if ((action === 'REVISE' || action === 'DISPUTE') && !showReasonInput) {
+  const handleAction = async (action: 'APPROVE' | 'REVISE') => {
+    if (action === 'REVISE' && !showReasonInput) {
       setShowReasonInput(action);
       return;
     }
@@ -225,8 +264,8 @@ export default function ReviewSubmission() {
             {showReasonInput && (
               <div className="animate-in fade-in slide-in-from-top-4 duration-300 space-y-4 pt-6 border-t border-slate-100">
                 <div className="flex items-center justify-between">
-                  <h3 className={`text-xs font-bold uppercase tracking-widest ${showReasonInput === 'REVISE' ? 'text-amber-600' : 'text-red-500'}`}>
-                    Feedback for {showReasonInput === 'REVISE' ? 'Revision' : 'Dispute'}
+                  <h3 className={`text-xs font-bold uppercase tracking-widest text-amber-600`}>
+                    Feedback for Revision
                   </h3>
                   <Button variant="ghost" size="sm" onClick={() => setShowReasonInput(null)} className="h-6 w-6 p-0 rounded-full">
                     <X className="w-4 h-4" />
@@ -236,7 +275,7 @@ export default function ReviewSubmission() {
                   value={reason}
                   onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setReason(e.target.value)}
                   className="w-full rounded-2xl border-slate-200 bg-slate-50 focus:bg-white transition-all p-5 resize-none text-sm min-h-[150px]"
-                  placeholder={`Explain to the worker why you are requesting a ${showReasonInput.toLowerCase()}...`}
+                  placeholder={`Explain to the worker why you are requesting a revision...`}
                   autoFocus
                 />
               </div>
@@ -258,6 +297,17 @@ export default function ReviewSubmission() {
                   className="w-full bg-accent-dark hover:bg-black text-white font-bold h-14 rounded-2xl flex items-center justify-center gap-2"
                 >
                   <FileText className="w-5 h-5" /> View Transaction Receipt
+                </Button>
+                <Button 
+                  onClick={() => handleDownloadReport(assignment.id, assignment.gig.title)}
+                  disabled={downloadingReport}
+                  className="w-full bg-primary-wera hover:bg-primary-dark text-white font-bold h-14 rounded-2xl flex items-center justify-center gap-2"
+                >
+                  {downloadingReport ? (
+                    <><div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> Generating...</>
+                  ) : (
+                    <><Download className="w-5 h-5" /> Download Report</>
+                  )}
                 </Button>
                 {ratingStatus?.hasRated ? (
                   <div className="flex items-center justify-center gap-1.5 py-3 text-xs font-bold text-amber-600 bg-amber-50 rounded-2xl border border-amber-100">
@@ -334,14 +384,11 @@ export default function ReviewSubmission() {
                     </Button>
                   )}
                   
-                  {(!showReasonInput || showReasonInput === 'DISPUTE') && (
+                  {(!showReasonInput) && (
                     <Button 
                       variant="outline"
-                      onClick={() => handleAction('DISPUTE')}
-                      disabled={isPending || (showReasonInput === 'DISPUTE' && !reason)}
-                      className={`flex-1 h-14 rounded-2xl font-bold transition-all ${
-                        showReasonInput === 'DISPUTE' ? 'bg-red-600 text-white border-red-600 hover:bg-red-700' : 'border-red-200 text-red-600 hover:bg-red-50'
-                      }`}
+                      onClick={() => setIsDisputeModalOpen(true)}
+                      className={`flex-1 h-14 rounded-2xl font-bold transition-all border-red-200 text-red-600 hover:bg-red-50`}
                     >
                       <AlertTriangle className="w-4 h-4 mr-2" />
                       Dispute
@@ -378,6 +425,31 @@ export default function ReviewSubmission() {
           rateeRole="worker"
         />
       )}
+
+      {assignment && (
+        <RaiseDisputeModal
+          assignmentId={assignment.id}
+          gigTitle={assignment.gig.title}
+          open={isDisputeModalOpen}
+          onClose={() => setIsDisputeModalOpen(false)}
+          onSuccess={() => {
+            refetch();
+          }}
+        />
+      )}
+
+      {/* Hidden Report Container for PDF Generation */}
+      <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
+        {reportData && (
+          <ReportShell 
+            ref={reportRef} 
+            title="Assignment Completion Report" 
+            subtitle="Employer Assignment Summary"
+          >
+            <EmployerAssignmentReport data={reportData} />
+          </ReportShell>
+        )}
+      </div>
     </div>
   );
 }

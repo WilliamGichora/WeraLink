@@ -2,7 +2,7 @@ import { useState } from "react";
 import { LoginForm } from "@/features/auth/components/LoginForm";
 import { RegisterForm } from "@/features/auth/components/RegisterForm";
 import { ForgotPasswordForm } from "@/features/auth/components/ForgotPasswordForm";
-import { Link as LinkIcon } from "lucide-react";
+import { WeraLinkLogo } from "@/components/ui/WeraLinkLogo";
 
 export default function AuthPage() {
   const [activeTab, setActiveTab] = useState<"login" | "register" | "forgot-password">("login");
@@ -15,11 +15,8 @@ export default function AuthPage() {
           <div className="absolute top-0 right-0 w-64 h-64 bg-primary-wera opacity-10 rounded-full blur-3xl -mr-16 -mt-16"></div>
           <div className="absolute bottom-0 left-0 w-64 h-64 bg-accent-text opacity-20 rounded-full blur-3xl -ml-16 -mb-16"></div>
           
-          <div className="relative z-10 flex items-center gap-2 mb-8">
-            <div className="bg-primary-wera p-2 rounded-lg">
-                <LinkIcon className="w-6 h-6 text-white" />
-            </div>
-            <span className="text-2xl font-bold tracking-tight">Wera<span className="text-primary-wera">Link</span></span>
+          <div className="relative z-10 mb-8">
+            <WeraLinkLogo size="md" variant="light" />
           </div>
           
           <div className="relative z-10 grow flex flex-col justify-center mb-8">

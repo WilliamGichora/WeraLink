@@ -45,15 +45,25 @@ export const getMyProfile = async (req, res) => {
 export const updateMyProfile = async (req, res) => {
     try {
         const userId = req.user.id;
-        const { bio, location, availabilityStatus, portfolio, name, phone } = req.body;
+        const { bio, location, availabilityStatus, portfolio, name, phone,
+                companyName, companyDescription, companyLogo, industry, website } = req.body;
+
+        const profileData = {};
+        if (bio !== undefined) profileData.bio = bio;
+        if (location !== undefined) profileData.location = location;
+        if (availabilityStatus !== undefined) profileData.availabilityStatus = availabilityStatus;
+        if (portfolio !== undefined) profileData.portfolio = portfolio;
+        // Employer-specific fields
+        if (companyName !== undefined) profileData.companyName = companyName;
+        if (companyDescription !== undefined) profileData.companyDescription = companyDescription;
+        if (companyLogo !== undefined) profileData.companyLogo = companyLogo;
+        if (industry !== undefined) profileData.industry = industry;
+        if (website !== undefined) profileData.website = website;
 
         const updatedProfile = await prisma.profile.update({
             where: { userId },
             data: {
-                bio: bio !== undefined ? bio : undefined,
-                location: location !== undefined ? location : undefined,
-                availabilityStatus: availabilityStatus !== undefined ? availabilityStatus : undefined,
-                portfolio: portfolio !== undefined ? portfolio : undefined,
+                ...profileData,
                 user: (name !== undefined || phone !== undefined) ? {
                     update: {
                         ...(name !== undefined && { name }),
@@ -127,5 +137,63 @@ export const removeMySkill = async (req, res) => {
     } catch (error) {
         console.error("Remove Skill Error:", error);
         return respond(res, 500, null, null, [{ code: "INTERNAL_ERROR", message: "Failed to remove skill." }]);
+    }
+};
+
+/**
+ * Public employer profile — used in GigDetailView to show employer info.
+ */
+export const getPublicEmployerProfile = async (req, res) => {
+    try {
+        const { id: userId } = req.params;
+
+        const profile = await prisma.profile.findUnique({
+            where: { userId },
+            select: {
+                companyName: true,
+                companyDescription: true,
+                companyLogo: true,
+                industry: true,
+                website: true,
+                location: true,
+                user: {
+                    select: {
+                        id: true,
+                        name: true,
+                        role: true,
+                        createdAt: true,
+                        _count: { select: { postedGigs: true } },
+                        ratingsRecv: {
+                            select: { score: true },
+                        },
+                    },
+                },
+            },
+        });
+
+        if (!profile || profile.user.role !== 'EMPLOYER') {
+            return respond(res, 404, null, null, [{ code: "NOT_FOUND", message: "Employer profile not found." }]);
+        }
+
+        // Calculate avg rating
+        const ratings = profile.user.ratingsRecv || [];
+        const avgRating = ratings.length > 0
+            ? Math.round(ratings.reduce((sum, r) => sum + r.score, 0) / ratings.length * 10) / 10
+            : null;
+
+        return respond(res, 200, {
+            profile: {
+                ...profile,
+                user: {
+                    ...profile.user,
+                    avgRating,
+                    totalRatings: ratings.length,
+                    ratingsRecv: undefined,
+                },
+            },
+        });
+    } catch (error) {
+        console.error("Get Public Employer Profile Error:", error);
+        return respond(res, 500, null, null, [{ code: "INTERNAL_ERROR", message: "Failed to retrieve employer profile." }]);
     }
 };

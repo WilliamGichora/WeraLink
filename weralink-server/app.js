@@ -20,6 +20,9 @@ import analyticsRoutes from './routes/analytics.routes.js';
 import reportRoutes from './routes/report.routes.js';
 import trainingRoutes from './routes/training.routes.js';
 import discoveryRoutes from './routes/discovery.routes.js';
+import adminRoutes from './routes/admin.routes.js';
+import disputeRoutes from './routes/dispute.routes.js';
+import supportRoutes from './routes/support.routes.js';
 import { errorHandler } from './middlewares/error.middleware.js';
 import { CronService } from './services/cron.service.js';
 const app = express();
@@ -65,6 +68,9 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/training', trainingRoutes);
 app.use('/api/discovery', discoveryRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/disputes', disputeRoutes);
+app.use('/api/support', supportRoutes);
 
 app.get("/", (req, res) => {
     res.send("WeraLink API is active!");

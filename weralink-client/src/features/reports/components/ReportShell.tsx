@@ -1,5 +1,6 @@
 import { forwardRef, type ReactNode } from 'react';
 import { format } from 'date-fns';
+import { WeraLinkLogo } from '@/components/ui/WeraLinkLogo';
 
 interface ReportShellProps {
   title: string;
@@ -30,18 +31,10 @@ export const ReportShell = forwardRef<HTMLDivElement, ReportShellProps>(
         <div className="px-12 pt-10 pb-6 border-b-2 border-[#EF626C]">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
-              <img
-                src="/assets/logos/weralink-brand-mark.png"
-                alt="WeraLink"
-                className="h-10 w-auto"
-                crossOrigin="anonymous"
-              />
+              <WeraLinkLogo size="md" variant="dark" />
               <div>
-                <h1 className="text-xl font-black text-[#211112] tracking-tight leading-none">
-                  WERALINK
-                </h1>
                 <p className="text-[8px] font-bold text-[#211112]/40 uppercase tracking-[0.3em]">
-                  Digital Work Platform
+                  Digital Gig Platform
                 </p>
               </div>
             </div>

@@ -54,6 +54,34 @@ export const getWorkerSkills = async (req, res) => {
   }
 };
 
+export const getWorkerGigCompletion = async (req, res) => {
+  try {
+    const { assignmentId } = req.params;
+    if (!assignmentId) return respond(res, 400, null, null, [{ code: 'BAD_REQUEST', message: 'Assignment ID is required' }]);
+    
+    const data = await ReportService.getWorkerGigCompletionReport(assignmentId, req.user.id);
+    return respond(res, 200, data);
+  } catch (error) {
+    console.error('Worker Gig Completion Report Error:', error.message);
+    const status = error.message === 'Access denied' ? 403 : error.message.includes('not found') ? 404 : 500;
+    return respond(res, status, null, null, [{ code: 'REPORT_ERROR', message: error.message }]);
+  }
+};
+
+export const getEmployerAssignmentReport = async (req, res) => {
+  try {
+    const { assignmentId } = req.params;
+    if (!assignmentId) return respond(res, 400, null, null, [{ code: 'BAD_REQUEST', message: 'Assignment ID is required' }]);
+    
+    const data = await ReportService.getEmployerAssignmentReport(assignmentId, req.user.id);
+    return respond(res, 200, data);
+  } catch (error) {
+    console.error('Employer Assignment Report Error:', error.message);
+    const status = error.message === 'Access denied' ? 403 : error.message.includes('not found') ? 404 : 500;
+    return respond(res, status, null, null, [{ code: 'REPORT_ERROR', message: error.message }]);
+  }
+};
+
 // ─── Employer Reports ─────────────────────────────────────
 
 export const getEmployerSpending = async (req, res) => {
