@@ -1,5 +1,6 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth, type UserRole } from "@/features/auth/context/AuthContext";
+import { AccountSuspendedView } from "@/pages/shared/AccountSuspendedView";
 
 interface ProtectedRouteProps {
     allowedRoles?: UserRole[];
@@ -35,10 +36,9 @@ export function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
         return <Navigate to="/auth" replace />;
     }
 
-    // Suspension gate: only allow support & notifications
+    // Suspension gate: show restriction view instead of dashboard
     if (user.status === 'SUSPENDED' && !isSuspendedAllowedPath(location.pathname)) {
-        const basePath = user.role === 'WORKER' ? '/worker' : user.role === 'EMPLOYER' ? '/employer' : '/admin';
-        return <Navigate to={`${basePath}/support`} replace />;
+        return <AccountSuspendedView />;
     }
 
     return <Outlet />;

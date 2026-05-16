@@ -142,11 +142,21 @@ export const verifyOTP = async (req, res, next) => {
         }
 
         // ── Standard login/signup OTP: full session ──
-        const updatedUser = await prisma.user.update({
+        // IMPORTANT: Only transition PENDING_OTP → ACTIVE (first-time verification).
+        // Do NOT blindly set ACTIVE — that would reverse admin suspensions.
+        const currentUser = await prisma.user.findUnique({
             where: { id: supabaseUserId },
-            data: { status: 'ACTIVE' },
             select: { id: true, email: true, name: true, role: true, status: true }
         });
+
+        let user = currentUser;
+        if (currentUser && currentUser.status === 'PENDING_OTP') {
+            user = await prisma.user.update({
+                where: { id: supabaseUserId },
+                data: { status: 'ACTIVE' },
+                select: { id: true, email: true, name: true, role: true, status: true }
+            });
+        }
 
         
         const cookieOptions = {
@@ -169,7 +179,7 @@ export const verifyOTP = async (req, res, next) => {
         res.cookie('refresh_token', authData.session.refresh_token, cookieOptions);
 
         return respond(res, 200, {
-            user: updatedUser,
+            user: user,
             message: "Authentication successful."
         });
 

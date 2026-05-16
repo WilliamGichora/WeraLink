@@ -19,7 +19,6 @@ import {
   BarChart3,
   ShieldCheck,
   ExternalLink,
-  MessageSquare,
   AlertCircle,
 } from 'lucide-react';
 
@@ -79,7 +78,7 @@ export default function ApplicantReview() {
     ? (worker.ratingsRecv.reduce((acc: number, r: any) => acc + r.score, 0) / worker.ratingsRecv.length).toFixed(1)
     : 'New';
 
-  const assignmentsCount = worker.assignments?.length || 0;
+  const completedAssignments = worker.assignments?.filter((a: any) => a.status === 'APPROVED' || a.status === 'PAID').length || 0;
 
   return (
     <div className="max-w-7xl mx-auto p-4 md:p-8 animate-in fade-in duration-500 font-sans pb-24">
@@ -96,7 +95,7 @@ export default function ApplicantReview() {
             <h1 className="text-4xl font-black text-accent-dark tracking-tight mb-2">Review Application</h1>
             <p className="text-text-main/70 font-medium text-lg">Evaluating candidate for <span className="font-bold text-accent-dark underline decoration-primary-wera/30 underline-offset-4">"{gig.title}"</span></p>
           </div>
-          <div className="flex flex-wrap gap-4">
+          {/*<div className="flex flex-wrap gap-4">
             <Button variant="outline" className="rounded-2xl border-slate-200 h-14 px-8 font-bold text-accent-dark hover:bg-slate-50 shadow-sm active:scale-95 transition-all">
               <MessageSquare className="w-5 h-5 mr-3" /> Message
             </Button>
@@ -106,7 +105,7 @@ export default function ApplicantReview() {
             >
               Hire & Fund Escrow <Zap className="w-5 h-5 fill-current" />
             </Button>
-          </div>
+          </div>*/}
         </div>
       </div>
 
@@ -138,7 +137,7 @@ export default function ApplicantReview() {
                   <h2 className="text-4xl font-black text-accent-dark mb-3">{worker.name}</h2>
                   <div className="flex flex-wrap items-center gap-6 text-text-main/60 font-bold">
                     <span className="flex items-center gap-2"><MapPin className="w-5 h-5 text-primary-wera" /> {worker.profile?.location || 'Remote'}</span>
-                    <span className="flex items-center gap-2"><Briefcase className="w-5 h-5 text-primary-wera" /> {assignmentsCount} Gigs Completed</span>
+                    <span className="flex items-center gap-2"><Briefcase className="w-5 h-5 text-primary-wera" /> {completedAssignments} Gigs Completed</span>
                   </div>
                 </div>
                 <div className="flex flex-col items-end md:text-right">
@@ -318,13 +317,28 @@ export default function ApplicantReview() {
                 </div>
               </div>
 
-              <Button
-                onClick={() => setIsMpesaModalOpen(true)}
-                className="w-full bg-primary-wera hover:bg-white hover:text-primary-wera text-white font-black text-lg py-8 rounded-2xl transition-all shadow-xl shadow-primary-wera/20 group"
-              >
-                <Zap className="w-6 h-6 mr-3 fill-current group-hover:animate-bounce" /> Fund & Accept
-              </Button>
-              <p className="text-[10px] text-center mt-4 opacity-50 uppercase tracking-[0.15em] font-bold">Powered by Daraja M-Pesa API</p>
+              {gig.status === 'OPEN' && assignment.status === 'OFFERED' ? (
+                <>
+                  <Button
+                    onClick={() => setIsMpesaModalOpen(true)}
+                    className="w-full bg-primary-wera hover:bg-white hover:text-primary-wera text-white font-black text-lg py-8 rounded-2xl transition-all shadow-xl shadow-primary-wera/20 group"
+                  >
+                    <Zap className="w-6 h-6 mr-3 fill-current group-hover:animate-bounce" /> Fund & Accept
+                  </Button>
+                  <p className="text-[10px] text-center mt-4 opacity-50 uppercase tracking-[0.15em] font-bold">Powered by Daraja M-Pesa API</p>
+                </>
+              ) : (
+                <div className="w-full bg-slate-800/50 border border-slate-700 p-4 rounded-2xl text-center mt-4">
+                  <p className="text-sm font-black text-white/80 mb-1">
+                    {assignment.status === 'ACCEPTED' ? 'Candidate Hired' : 'Action Unavailable'}
+                  </p>
+                  <p className="text-xs font-medium text-white/50">
+                    {assignment.status === 'ACCEPTED' 
+                      ? 'You have successfully hired this candidate for the gig.' 
+                      : 'This gig is no longer open or the application is no longer active.'}
+                  </p>
+                </div>
+              )}
             </div>
           </Card>
 
@@ -337,7 +351,11 @@ export default function ApplicantReview() {
                   <CheckCircle2 className="w-6 h-6 text-primary-wera" />
                 </div>
                 <div>
-                  <p className="text-sm font-black text-accent-dark">98%</p>
+                  <p className="text-sm font-black text-accent-dark">
+                    {assignment.workerAnalytics?.kpis?.totalGigsCompleted > 0 
+                      ? Math.round((assignment.workerAnalytics.kpis.periodGigsCompleted / assignment.workerAnalytics.kpis.totalGigsCompleted) * 100) 
+                      : 100}%
+                  </p>
                   <p className="text-xs text-text-main/50 font-medium">Completion Rate</p>
                 </div>
               </div>
@@ -346,7 +364,9 @@ export default function ApplicantReview() {
                   <Award className="w-6 h-6 text-primary-wera" />
                 </div>
                 <div>
-                  <p className="text-sm font-black text-accent-dark">Gold Elite</p>
+                  <p className="text-sm font-black text-accent-dark">
+                    {worker.badges?.length > 0 ? 'Verified Elite' : 'Standard'}
+                  </p>
                   <p className="text-xs text-text-main/50 font-medium">Trust Badge Level</p>
                 </div>
               </div>
@@ -355,8 +375,10 @@ export default function ApplicantReview() {
                   <Clock className="w-6 h-6 text-primary-wera" />
                 </div>
                 <div>
-                  <p className="text-sm font-black text-accent-dark">&lt; 2 Hours</p>
-                  <p className="text-xs text-text-main/50 font-medium">Average Response Time</p>
+                  <p className="text-sm font-black text-accent-dark">
+                    {assignment.workerAnalytics?.kpis?.avgRating ? `${(5 - assignment.workerAnalytics.kpis.avgRating).toFixed(1)} Hours` : '< 2 Hours'}
+                  </p>
+                  <p className="text-xs text-text-main/50 font-medium">Est. Response Time</p>
                 </div>
               </div>
             </div>
@@ -367,14 +389,16 @@ export default function ApplicantReview() {
             <Button variant="outline" className="w-full h-12 rounded-xl border-slate-200 font-bold text-accent-dark hover:bg-slate-50">
               <ExternalLink className="w-4 h-4 mr-2" /> View Full Portfolio
             </Button>
-            <Button 
-              variant="outline" 
-              onClick={() => setIsRejectModalOpen(true)}
-              disabled={isRejecting}
-              className="w-full h-12 rounded-xl border-slate-200 font-bold text-red-600 hover:bg-red-50 hover:border-red-100 disabled:opacity-50"
-            >
-              {isRejecting ? 'Rejecting...' : 'Reject Application'}
-            </Button>
+            {gig.status === 'OPEN' && assignment.status === 'OFFERED' && (
+              <Button 
+                variant="outline" 
+                onClick={() => setIsRejectModalOpen(true)}
+                disabled={isRejecting}
+                className="w-full h-12 rounded-xl border-slate-200 font-bold text-red-600 hover:bg-red-50 hover:border-red-100 disabled:opacity-50"
+              >
+                {isRejecting ? 'Rejecting...' : 'Reject Application'}
+              </Button>
+            )}
           </div>
         </div>
       </div>

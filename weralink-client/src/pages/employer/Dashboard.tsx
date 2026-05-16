@@ -69,7 +69,7 @@ export default function EmployerDashboard() {
                         <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-[32px] p-8 hover:bg-white/10 transition-all duration-500 group shadow-2xl">
                             <div className="flex justify-between items-start">
                                 <div>
-                                    <p className="text-gray-400 text-xs font-black uppercase tracking-widest mb-2">Completion Rate</p>
+                                    <p className="text-gray-400 text-xs font-black uppercase tracking-widest mb-2">Completion Ratio</p>
                                     <h3 className="text-4xl font-black text-white group-hover:text-green-400 transition-colors tracking-tighter">
                                       {isLoading ? <Loader2 className="w-8 h-8 animate-spin text-gray-400" /> : `${completionRate}%`}
                                     </h3>

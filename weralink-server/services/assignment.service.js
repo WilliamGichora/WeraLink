@@ -1,6 +1,7 @@
 import prisma from '../config/prisma.js';
 import { scoreWorkerForGig } from './matching.service.js';
 import NotificationService from './notification.service.js';
+import { AnalyticsService } from './analytics.service.js';
 
 /**
  * AssignmentService
@@ -63,7 +64,7 @@ export class AssignmentService {
       where: { id: assignmentId },
       include: {
         gig: {
-          include: { 
+          include: {
             employer: { select: { name: true, profile: { select: { bio: true } } } },
             skills: { select: { skillId: true, requiredLevel: true } }
           }
@@ -71,10 +72,10 @@ export class AssignmentService {
         worker: {
           include: {
             profile: { select: { location: true, availabilityStatus: true, bio: true } },
-            skills: { 
-              include: { 
-                skill: { select: { name: true } } 
-              } 
+            skills: {
+              include: {
+                skill: { select: { name: true } }
+              }
             },
             badges: { select: { badgeId: true } },
             assignments: {
@@ -100,13 +101,21 @@ export class AssignmentService {
 
     const matchData = this._calculateMatch(assignment.worker, assignment.gig);
 
+    let workerAnalytics = null;
+    try {
+      workerAnalytics = await AnalyticsService.getWorkerAnalytics(assignment.workerId, { months: 12 });
+    } catch (e) {
+      console.error('Failed to fetch worker analytics for assignment:', e);
+    }
+
     return {
       ...assignment,
       matchScore: matchData.matchScore,
       matchBreakdown: matchData.breakdown,
       matchTags: matchData.tags,
       matchedSkills: matchData.matchedSkills,
-      missingSkills: matchData.missingSkills
+      missingSkills: matchData.missingSkills,
+      workerAnalytics,
     };
   }
 
@@ -153,6 +162,10 @@ export class AssignmentService {
         throw new Error('Assignment not found or not in OFFERED state');
       }
 
+      if (assignment.gig.status !== 'OPEN') {
+        throw new Error('This gig has already been assigned to someone else.');
+      }
+
       const days = assignment.gig.duration || 3;
       const deadline = new Date();
       deadline.setDate(deadline.getDate() + days);
@@ -163,7 +176,7 @@ export class AssignmentService {
         data: { status: 'ASSIGNED' }
       });
 
-      return await tx.assignment.update({
+      const updatedAssignment = await tx.assignment.update({
         where: { id: assignmentId },
         data: {
           status: 'ACCEPTED',
@@ -171,6 +184,40 @@ export class AssignmentService {
           deadlineAt: deadline
         }
       });
+
+      // Reject all other OFFERED assignments for this gig
+      const competitors = await tx.assignment.findMany({
+        where: { gigId: assignment.gigId, id: { not: assignmentId }, status: 'OFFERED' }
+      });
+
+      if (competitors.length > 0) {
+        await tx.assignment.updateMany({
+          where: { gigId: assignment.gigId, id: { not: assignmentId }, status: 'OFFERED' },
+          data: { status: 'REJECTED' }
+        });
+
+        const rejectNotifications = competitors.map(comp => ({
+          userId: comp.workerId,
+          title: 'Application Update',
+          message: `The gig "${assignment.gig.title}" has been assigned to someone else. Your application was not selected.`,
+          type: 'REJECTED',
+          linkUrl: `/worker/history`
+        }));
+        await tx.notification.createMany({ data: rejectNotifications });
+      }
+
+      // Notify the accepted worker
+      await tx.notification.create({
+        data: {
+          userId: assignment.workerId,
+          title: 'You got the gig!',
+          message: `You have been hired for "${assignment.gig.title}". Escrow is funded and you can now begin work.`,
+          type: 'ACCEPTED',
+          linkUrl: `/worker/gigs/${assignment.id}`
+        }
+      });
+
+      return updatedAssignment;
     });
   }
 
@@ -231,7 +278,7 @@ export class AssignmentService {
 
       const autoApprove = new Date();
       autoApprove.setHours(autoApprove.getHours() + 72);
-      
+
       // Delete existing evidence to replace with the new list (Clean Slate for resubmission)
       await tx.evidence.deleteMany({
         where: { assignmentId }
@@ -247,7 +294,7 @@ export class AssignmentService {
           }))
         });
       }
-      
+
       // Notify employer
       const isResubmission = assignment.status === 'REVISION_REQUESTED';
       await tx.notification.create({
@@ -306,17 +353,18 @@ export class AssignmentService {
           });
 
           // Trigger M-Pesa B2C Payout
+          const phoneToUse = '254708374149'
           try {
             const { MpesaService } = await import('./mpesa.service.js');
             await MpesaService.triggerB2CPayout(
-              assignmentId, 
-              updatedAssignment.worker.phone, 
+              assignmentId,
+              phoneToUse,
               Number(assignment.gig.payAmount)
             );
           } catch (paymentError) {
             console.error('[B2C Payout Error]:', paymentError);
           }
-          
+
           await tx.notification.create({
             data: {
               userId: assignment.workerId,
@@ -341,7 +389,7 @@ export class AssignmentService {
               revisionNotes: reason
             }
           });
-          
+
           await tx.notification.create({
             data: {
               userId: assignment.workerId,
@@ -366,7 +414,7 @@ export class AssignmentService {
         default:
           throw new Error('Invalid review action');
       }
-      
+
       return updatedAssignment;
     });
   }
@@ -467,9 +515,9 @@ export class AssignmentService {
     const gigIds = gigs.map(g => g.id);
 
     // Build where clause for assignments
-    const where = { 
-      gigId: { in: gigIds }, 
-      status: 'OFFERED' 
+    const where = {
+      gigId: { in: gigIds },
+      status: 'OFFERED'
     };
 
     if (search) {
@@ -509,7 +557,7 @@ export class AssignmentService {
 
     let applicants = assignments.map(a => {
       const gig = gigs.find(g => g.id === a.gigId);
-      
+
       // Re-hydrate worker for scoring (same logic as getGigApplicants)
       const worker = a.worker;
       const hydratedWorker = {
@@ -665,7 +713,7 @@ export class AssignmentService {
    */
   static async syncOrphanPayouts() {
     console.log('[Reconciliation] Starting payout sync for orphan assignments...');
-    
+
     // Find assignments that are APPROVED
     const approvedAssignments = await prisma.assignment.findMany({
       where: {
@@ -693,7 +741,7 @@ export class AssignmentService {
     for (const assignment of approvedAssignments) {
       try {
         const existingPayout = assignment.transactions[0];
-        
+
         // Case 1: Already has a SUCCESSFUL payout
         if (existingPayout && existingPayout.status === 'SUCCESS') {
           results.skipped++;
@@ -703,21 +751,21 @@ export class AssignmentService {
         // Case 2: Has a PENDING payout
         if (existingPayout && existingPayout.status === 'PENDING') {
           const isStale = (Date.now() - new Date(existingPayout.initiatedAt).getTime()) > STALE_THRESHOLD_MS;
-          
+
           if (!isStale) {
             console.log(`[Reconciliation] Assignment ${assignment.id} has a fresh PENDING payout. Skipping.`);
             results.skipped++;
             continue;
           }
-          
+
           console.log(`[Reconciliation] Assignment ${assignment.id} has a STALE PENDING payout. Deleting and re-triggering...`);
           await prisma.transaction.delete({ where: { id: existingPayout.id } });
         }
 
         // Case 3: No payout (or stale one deleted) - Trigger new payout
         console.log(`[Reconciliation] Triggering payout for Assignment ${assignment.id} (${assignment.gig.title})`);
-        
-        const phone = "254768172782";
+
+        const phone = "254708374149";
         if (!phone) {
           throw new Error(`Worker ${assignment.workerId} has no phone number`);
         }

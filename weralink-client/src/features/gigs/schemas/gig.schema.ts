@@ -19,7 +19,8 @@ export const EvidenceRequirementSchema = z.object({
   label: z.string().min(1, 'Label is required'),
   type: EvidenceTypeSchema,
   accept: z.array(z.string()).optional(),
-  maxSizeMB: z.number().optional(),
+  pattern: z.string().optional(),
+  maxSizeMB: z.number().optional().default(10),
   min: z.number().int().min(0).default(1),
   required: z.boolean().default(true),
 });

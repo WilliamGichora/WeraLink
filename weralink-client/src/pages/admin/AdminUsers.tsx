@@ -1,8 +1,11 @@
-import { useState, useCallback, useMemo } from 'react';
-import { Users, Search, ChevronDown, Shield, Ban, UserCheck, Eye, Edit, X, CheckCircle } from 'lucide-react';
+import { useState, useCallback, useMemo, useRef } from 'react';
+import { Users, Search, ChevronDown, Ban, UserCheck, Eye, Edit, X, CheckCircle, Download, Loader2 } from 'lucide-react';
 import { useAdminListUsers, useAdminUserDetail, useAdminSuspendUser, useAdminUnsuspendUser, useAdminEditUser } from '@/features/admin/api/admin.api';
 import { toast } from 'sonner';
 import { useDebounce } from '@/hooks/useDebounce';
+import { ReportShell } from '@/features/reports/components/ReportShell';
+import { AdminUsersReport } from '@/features/reports/components/AdminUsersReport';
+import { downloadReportAsPdf } from '@/features/reports/utils/downloadPdf';
 
 const ROLES = ['', 'WORKER', 'EMPLOYER', 'ADMIN'];
 const STATUSES = ['', 'ACTIVE', 'SUSPENDED', 'PENDING_OTP'];
@@ -28,10 +31,16 @@ export default function AdminUsers() {
   const [suspendReason, setSuspendReason] = useState('');
   const [showSuspendDialog, setShowSuspendDialog] = useState(false);
 
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [downloading, setDownloading] = useState(false);
+  const reportRef = useRef<HTMLDivElement>(null);
+
   const debouncedSearch = useDebounce(search, 400);
   const params = useMemo(() => ({
     page, limit: 15, search: debouncedSearch || undefined, role: role || undefined, status: status || undefined,
-  }), [page, debouncedSearch, role, status]);
+    startDate: startDate || undefined, endDate: endDate || undefined,
+  }), [page, debouncedSearch, role, status, startDate, endDate]);
 
   const { data: usersData, isLoading } = useAdminListUsers(params);
   const { data: userDetail, isLoading: detailLoading } = useAdminUserDetail(selectedUserId);
@@ -81,6 +90,31 @@ export default function AdminUsers() {
     }
   };
 
+  const handleDownloadReport = async () => {
+    if (!reportRef.current || !users || users.length === 0) {
+      toast.error('No users to export.');
+      return;
+    }
+    setDownloading(true);
+    try {
+      await downloadReportAsPdf(reportRef.current, `WeraLink-Admin-Users`);
+      toast.success('Report downloaded successfully!');
+    } catch (error) {
+      toast.error('Failed to generate PDF.');
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  const clearFilters = () => {
+    setSearch('');
+    setRole('');
+    setStatus('');
+    setStartDate('');
+    setEndDate('');
+    setPage(1);
+  };
+
   return (
     <div className="p-4 md:p-8 font-sans animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Header */}
@@ -89,6 +123,16 @@ export default function AdminUsers() {
         <div>
           <h1 className="text-3xl font-black text-accent-dark tracking-tight">User Management</h1>
           <p className="text-text-main/50 text-sm font-medium">Manage platform users, suspensions, and profile edits</p>
+        </div>
+        <div className="ml-auto">
+          <button
+            onClick={handleDownloadReport}
+            disabled={downloading || users.length === 0}
+            className="flex items-center gap-2 px-4 py-2 bg-primary-wera text-white text-sm font-bold rounded-xl shadow hover:bg-primary-dark transition-all disabled:opacity-50"
+          >
+            {downloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+            Export Data
+          </button>
         </div>
       </div>
 
@@ -118,6 +162,35 @@ export default function AdminUsers() {
           </select>
           <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-text-main/30 pointer-events-none" />
         </div>
+        <div className="flex items-center gap-2">
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => { setStartDate(e.target.value); setPage(1); }}
+            className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-primary-wera/30 outline-none cursor-pointer"
+          />
+          <span className="text-text-main/50 font-medium">to</span>
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => { setEndDate(e.target.value); setPage(1); }}
+            className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-primary-wera/30 outline-none cursor-pointer"
+          />
+        </div>
+        {(search || role || status || startDate || endDate) && (
+          <button
+            onClick={clearFilters}
+            className="text-xs font-bold text-red-500 hover:text-red-700 hover:underline transition-all flex items-center gap-1"
+          >
+            <X className="w-3 h-3" /> Clear Filters
+          </button>
+        )}
+      </div>
+
+      <div className="absolute -left-[9999px] top-0 opacity-0 overflow-hidden" aria-hidden="true">
+        <ReportShell ref={reportRef} title="Admin Users Report">
+          <AdminUsersReport users={users} filters={{ role, status, startDate, endDate }} />
+        </ReportShell>
       </div>
 
       {/* Users Table */}

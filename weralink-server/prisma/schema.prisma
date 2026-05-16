@@ -64,7 +64,7 @@ model Profile {
   location           String?
   availabilityStatus Boolean @default(true)
   portfolio          Json? // [{ id, title, description, url, type }]
-  verified           Boolean @default(true)
+  verified           Boolean @default(false)
 
   // Employer-specific fields (null for workers)
   companyName        String?

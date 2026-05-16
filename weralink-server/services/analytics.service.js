@@ -239,6 +239,28 @@ export class AnalyticsService {
 
   // ─── Admin Analytics ────────────────────────────────────────
 
+  /**
+   * Calculates the current escrow balance for a specific gig.
+   * Useful for identifying pre-funded gigs after a dispute resolution.
+   */
+  static async getGigEscrowBalance(gigId) {
+    const transactions = await prisma.transaction.findMany({
+      where: {
+        assignment: { gigId },
+        status: 'SUCCESS'
+      }
+    });
+
+    const balance = transactions.reduce((acc, tx) => {
+      if (tx.type === 'DEPOSIT_TO_ESCROW') return acc + Number(tx.amount);
+      if (tx.type === 'PAYOUT_TO_WORKER') return acc - Number(tx.amount);
+      if (tx.type === 'REFUND_TO_EMPLOYER') return acc - Number(tx.amount);
+      return acc;
+    }, 0);
+
+    return balance;
+  }
+
   static async getAdminAnalytics({ months = 6 } = {}) {
     const since = new Date();
     since.setMonth(since.getMonth() - months);
@@ -255,20 +277,20 @@ export class AnalyticsService {
       disputeStats,
     ] = await Promise.all([
       // Platform GMV (Total money processed through the system)
-      // Includes both deposits and direct payouts if any
+      // Represented by the total value of all successful deposits to escrow
       prisma.transaction.aggregate({
         where: {
-          type: { in: ['DEPOSIT_TO_ESCROW', 'PAYOUT_TO_WORKER'] },
+          type: 'DEPOSIT_TO_ESCROW',
           status: { in: ['SUCCESS', 'RELEASED'] }
         },
         _sum: { amount: true },
         _count: { id: true },
       }),
 
-      // Transaction trend
+      // Transaction trend (Monthly GMV volume)
       AnalyticsService._getMonthlyTrend(
         'transaction',
-        { status: { in: ['SUCCESS', 'RELEASED'] } },
+        { type: 'DEPOSIT_TO_ESCROW', status: { in: ['SUCCESS', 'RELEASED'] } },
         'completedAt',
         months
       ),
@@ -312,14 +334,19 @@ export class AnalyticsService {
         _count: { id: true },
       }),
 
-      // Escrow balance (PENDING deposits - completed payouts)
+      // Escrow balance calculation:
+      // (SUCCESS + RELEASED Deposits) - (SUCCESS Payouts) - (SUCCESS Refunds)
       Promise.all([
         prisma.transaction.aggregate({
-          where: { type: 'DEPOSIT_TO_ESCROW', status: 'SUCCESS' },
+          where: { type: 'DEPOSIT_TO_ESCROW', status: { in: ['SUCCESS', 'RELEASED'] } },
           _sum: { amount: true },
         }),
         prisma.transaction.aggregate({
           where: { type: 'PAYOUT_TO_WORKER', status: 'SUCCESS' },
+          _sum: { amount: true },
+        }),
+        prisma.transaction.aggregate({
+          where: { type: 'REFUND_TO_EMPLOYER', status: 'SUCCESS' },
           _sum: { amount: true },
         }),
       ]),
@@ -357,7 +384,11 @@ export class AnalyticsService {
           ? Math.round(platformRating._avg.score * 10) / 10
           : null,
         totalRatings: platformRating._count.id,
-        escrowBalance: ((escrowBalance[0]._sum.amount || 0) - (escrowBalance[1]._sum.amount || 0)),
+        escrowBalance: (
+          (escrowBalance[0]._sum.amount || 0) - 
+          (escrowBalance[1]._sum.amount || 0) - 
+          (escrowBalance[2]._sum.amount || 0)
+        ),
         totalDisputes: disputeStats[0],
         openDisputes: disputeStats[1],
         disputeRate: disputeStats[2] > 0

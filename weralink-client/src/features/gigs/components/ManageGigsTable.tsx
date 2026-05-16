@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { gigHooks } from '../api/gig.api';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -15,21 +15,36 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Search, MoreVertical, Edit, Eye, Trash2, Filter, ArrowUpRight, RotateCcw } from 'lucide-react';
+import { Search, MoreVertical, Edit, Eye, Trash2, Filter, ArrowUpRight, RotateCcw, X } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { ReportShell } from '@/features/reports/components/ReportShell';
+import { ManageGigsReport } from '@/features/reports/components/ManageGigsReport';
+import { downloadReportAsPdf } from '@/features/reports/utils/downloadPdf';
+import { useAuth } from '@/features/auth/context/AuthContext';
 
 type GigStatus = 'ALL' | 'OPEN' | 'ASSIGNED' | 'COMPLETED' | 'CLOSED' | 'CANCELLED' | 'DRAFT';
 
 export const ManageGigsTable: React.FC = () => {
     const navigate = useNavigate();
-    const { data: gigs, isLoading } = gigHooks.useGetMyGigs();
+    const { user } = useAuth();
+    const [searchQuery, setSearchQuery] = useState('');
+    const [statusTab, setStatusTab] = useState<GigStatus>('ALL');
+    const [category, setCategory] = useState('');
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
+    const [downloading, setDownloading] = useState(false);
+    const reportRef = useRef<HTMLDivElement>(null);
+
+    const { data: gigs, isLoading } = gigHooks.useGetMyGigs({
+        category: category || undefined,
+        startDate: startDate || undefined,
+        endDate: endDate || undefined,
+    });
     const deleteMutation = gigHooks.useDeleteGig();
     const repostMutation = gigHooks.useRepostGig();
     const [gigToDelete, setGigToDelete] = useState<any>(null);
     const [gigToRepost, setGigToRepost] = useState<any>(null);
-    const [searchQuery, setSearchQuery] = useState('');
-    const [statusTab, setStatusTab] = useState<GigStatus>('ALL');
 
     const filteredGigs = (gigs || []).filter((gig: any) => {
         const matchesSearch = gig.title.toLowerCase().includes(searchQuery.toLowerCase());
@@ -44,8 +59,33 @@ export const ManageGigsTable: React.FC = () => {
             case 'COMPLETED': return 'bg-green-50 text-green-600 border-green-200 font-bold';
             case 'DRAFT': return 'bg-slate-100 text-text-main/70 border-slate-200 font-bold';
             case 'CANCELLED': return 'bg-red-50 text-red-600 border-red-200 font-bold';
+            case 'CLOSED': return 'bg-slate-200 text-slate-700 border-slate-300 font-bold';
             default: return 'bg-slate-100 text-text-main/70 border-slate-200 font-bold';
         }
+    };
+
+    const handleDownloadReport = async () => {
+        if (!reportRef.current || filteredGigs.length === 0) {
+            toast.error('No gigs to export.');
+            return;
+        }
+        setDownloading(true);
+        try {
+            await downloadReportAsPdf(reportRef.current, `WeraLink-Gigs-Report`);
+            toast.success('Report downloaded successfully!');
+        } catch (error) {
+            toast.error('Failed to generate PDF.');
+        } finally {
+            setDownloading(false);
+        }
+    };
+
+    const clearFilters = () => {
+        setSearchQuery('');
+        setStatusTab('ALL');
+        setCategory('');
+        setStartDate('');
+        setEndDate('');
     };
 
     return (
@@ -55,36 +95,96 @@ export const ManageGigsTable: React.FC = () => {
                     <h2 className="text-3xl font-bold text-accent-dark">Manage Gigs</h2>
                     <p className="text-text-main/70 text-base mt-1">View and manage all your posted opportunities.</p>
                 </div>
-                <Button asChild className="bg-primary-wera hover:bg-primary-dark text-white rounded-xl shadow-lg shadow-primary-wera/20 px-6 h-12 font-bold transition-transform active:scale-95">
-                    <Link to="/employer/gigs/new">Post New Gig</Link>
-                </Button>
+                <div className="flex gap-3">
+                    <Button 
+                        variant="outline" 
+                        onClick={handleDownloadReport}
+                        disabled={downloading || filteredGigs.length === 0}
+                        className="bg-white border-slate-200 text-accent-dark rounded-xl px-4 h-12 font-bold transition-transform active:scale-95 disabled:opacity-50"
+                    >
+                        {downloading ? <RotateCcw className="w-4 h-4 mr-2 animate-spin" /> : <Filter className="w-4 h-4 mr-2" />}
+                        Export Data
+                    </Button>
+                    <Button asChild className="bg-primary-wera hover:bg-primary-dark text-white rounded-xl shadow-lg shadow-primary-wera/20 px-6 h-12 font-bold transition-transform active:scale-95">
+                        <Link to="/employer/gigs/new">Post New Gig</Link>
+                    </Button>
+                </div>
+            </div>
+
+            <div className="absolute -left-[9999px] top-0 opacity-0 overflow-hidden" aria-hidden="true">
+                <ReportShell ref={reportRef} title="Manage Gigs Report">
+                    <ManageGigsReport 
+                        gigs={filteredGigs} 
+                        employerName={user?.name || 'Employer'} 
+                        filters={{ status: statusTab !== 'ALL' ? statusTab : undefined, category, startDate, endDate }} 
+                    />
+                </ReportShell>
             </div>
 
             <Card className="bg-white border-slate-200 shadow-sm rounded-2xl">
                 <CardContent className="p-6 md:p-8">
-                    <Tabs defaultValue="ALL" onValueChange={(val) => setStatusTab(val as GigStatus)} className="w-full">
-                        <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6 mb-8">
-                            <TabsList className="bg-slate-50 border border-slate-200 p-1 rounded-xl h-auto flex flex-wrap max-w-full justify-start overflow-x-auto">
-                                <TabsTrigger value="ALL" className="rounded-lg data-[state=active]:bg-primary-wera/10 data-[state=active]:text-primary-wera text-text-main/70 font-bold px-4 py-2">All Gigs</TabsTrigger>
-                                <TabsTrigger value="OPEN" className="rounded-lg data-[state=active]:bg-blue-50 data-[state=active]:text-blue-600 text-text-main/70 font-bold px-4 py-2">Active</TabsTrigger>
-                                <TabsTrigger value="ASSIGNED" className="rounded-lg data-[state=active]:bg-amber-50 data-[state=active]:text-amber-600 text-text-main/70 font-bold px-4 py-2">In Progress</TabsTrigger>
-                                <TabsTrigger value="COMPLETED" className="rounded-lg data-[state=active]:bg-green-50 data-[state=active]:text-green-600 text-text-main/70 font-bold px-4 py-2">Completed</TabsTrigger>
-                                <TabsTrigger value="DRAFT" className="rounded-lg data-[state=active]:bg-slate-200 data-[state=active]:text-accent-dark text-text-main/70 font-bold px-4 py-2">Drafts</TabsTrigger>
-                            </TabsList>
+                    <Tabs defaultValue="ALL" onValueChange={(val) => setStatusTab(val as GigStatus)} value={statusTab} className="w-full">
+                        <div className="flex flex-col gap-6 mb-8">
+                            {/* Tabs Row */}
+                            <div className="w-full overflow-x-auto pb-2 -mb-2 hide-scrollbar">
+                                <TabsList className="bg-slate-50 border border-slate-200 p-1 rounded-xl h-auto inline-flex min-w-max">
+                                    <TabsTrigger value="ALL" className="rounded-lg data-[state=active]:bg-primary-wera/10 data-[state=active]:text-primary-wera text-text-main/70 font-bold px-4 py-2">All Gigs</TabsTrigger>
+                                    <TabsTrigger value="OPEN" className="rounded-lg data-[state=active]:bg-blue-50 data-[state=active]:text-blue-600 text-text-main/70 font-bold px-4 py-2">Active</TabsTrigger>
+                                    <TabsTrigger value="ASSIGNED" className="rounded-lg data-[state=active]:bg-amber-50 data-[state=active]:text-amber-600 text-text-main/70 font-bold px-4 py-2">In Progress</TabsTrigger>
+                                    <TabsTrigger value="COMPLETED" className="rounded-lg data-[state=active]:bg-green-50 data-[state=active]:text-green-600 text-text-main/70 font-bold px-4 py-2">Completed</TabsTrigger>
+                                    <TabsTrigger value="CLOSED" className="rounded-lg data-[state=active]:bg-slate-200 data-[state=active]:text-accent-dark text-text-main/70 font-bold px-4 py-2">Closed</TabsTrigger>
+                                    <TabsTrigger value="CANCELLED" className="rounded-lg data-[state=active]:bg-red-50 data-[state=active]:text-red-600 text-text-main/70 font-bold px-4 py-2">Cancelled</TabsTrigger>
+                                    <TabsTrigger value="DRAFT" className="rounded-lg data-[state=active]:bg-slate-200 data-[state=active]:text-accent-dark text-text-main/70 font-bold px-4 py-2">Drafts</TabsTrigger>
+                                </TabsList>
+                            </div>
                             
-                            <div className="flex gap-3 w-full xl:w-auto">
-                                <div className="relative w-full md:w-72">
+                            {/* Filters Row */}
+                            <div className="flex flex-wrap lg:flex-nowrap items-center gap-3 bg-slate-50/50 p-4 rounded-xl border border-slate-100">
+                                <div className="relative w-full lg:flex-1 lg:min-w-[200px]">
                                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-main/40" />
                                     <Input 
                                         placeholder="Search by title..." 
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
-                                        className="pl-12 bg-white border-slate-200 text-text-main focus:border-primary-wera focus:ring-primary-wera h-12 rounded-xl text-base shadow-inner"
+                                        className="pl-12 bg-white border-slate-200 text-text-main focus:border-primary-wera focus:ring-primary-wera h-12 rounded-xl text-base shadow-inner w-full"
                                     />
                                 </div>
-                                <Button variant="outline" size="icon" className="border-slate-200 text-text-main/70 hover:text-accent-dark hover:bg-slate-50 h-12 w-12 rounded-xl transition-colors">
-                                    <Filter className="w-5 h-5" />
-                                </Button>
+                                <select 
+                                    value={category} 
+                                    onChange={(e) => setCategory(e.target.value)}
+                                    className="bg-white border border-slate-200 text-text-main h-12 rounded-xl px-4 font-medium focus:border-primary-wera focus:ring-primary-wera outline-none w-full lg:w-48"
+                                >
+                                    <option value="">All Categories</option>
+                                    <option value="TRANSLATION">Translation</option>
+                                    <option value="MARKETING">Marketing</option>
+                                    <option value="DATA_ENTRY">Data Entry</option>
+                                    <option value="BUG_HUNTING">Bug Hunting</option>
+                                    <option value="AI_LABELING">AI Labeling</option>
+                                    <option value="RESEARCH">Research</option>
+                                </select>
+                                <div className="flex items-center gap-2 w-full lg:w-auto">
+                                    <Input
+                                        type="date"
+                                        value={startDate}
+                                        onChange={(e) => setStartDate(e.target.value)}
+                                        className="bg-white border-slate-200 text-text-main h-12 rounded-xl px-3 font-medium focus:border-primary-wera focus:ring-primary-wera flex-1 lg:w-36"
+                                    />
+                                    <span className="text-text-main/50 font-medium px-1">to</span>
+                                    <Input
+                                        type="date"
+                                        value={endDate}
+                                        onChange={(e) => setEndDate(e.target.value)}
+                                        className="bg-white border-slate-200 text-text-main h-12 rounded-xl px-3 font-medium focus:border-primary-wera focus:ring-primary-wera flex-1 lg:w-36"
+                                    />
+                                </div>
+                                {(searchQuery || category || startDate || endDate || statusTab !== 'ALL') && (
+                                    <button 
+                                        onClick={clearFilters}
+                                        className="text-sm font-bold text-red-500 hover:text-red-700 hover:underline transition-all flex items-center gap-1 w-full lg:w-auto justify-center lg:justify-start pt-2 lg:pt-0 lg:ml-2"
+                                    >
+                                        <X className="w-4 h-4" /> Clear
+                                    </button>
+                                )}
                             </div>
                         </div>
 

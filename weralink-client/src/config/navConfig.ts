@@ -6,15 +6,10 @@ import {
   Clock,
   Wallet,
   ArrowRightLeft,
-  GraduationCap,
   Award,
-  Settings,
   Users,
   FileText,
-  AlertTriangle,
-  Flag,
   Database,
-  BarChart,
   BarChart3,
   Target,
   History,
@@ -80,7 +75,7 @@ export const NAV_CONFIG: NavConfigMap = {
         }
       ]
     },
-    {
+    /*{
       title: "Payments",
       categories: [
         {
@@ -91,7 +86,7 @@ export const NAV_CONFIG: NavConfigMap = {
           ]
         }
       ]
-    },
+    },*/
     {
       title: "Learning",
       categories: [
@@ -177,7 +172,7 @@ export const NAV_CONFIG: NavConfigMap = {
   ],
   ADMIN: [
     { title: "Dashboard", href: "/admin" },
-    {
+    /*{
       title: "Users",
       categories: [
         {
@@ -210,6 +205,6 @@ export const NAV_CONFIG: NavConfigMap = {
           ]
         }
       ]
-    }
+    }*/
   ]
 };

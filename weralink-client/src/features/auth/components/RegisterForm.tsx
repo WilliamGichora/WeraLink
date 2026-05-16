@@ -85,12 +85,12 @@ export function RegisterForm() {
             <Input 
               id="reg-name" 
               type="text" 
-              {...register("name", { required: "Name is required" })}
+              {...register("name", { required: "Name is required",pattern: /^[a-zA-Z\s]+$/ })}
               placeholder="John Doe" 
               className="pl-10 block w-full rounded-lg border-gray-200 bg-gray-50 text-text-main shadow-sm py-3 focus-visible:ring-primary-wera" 
             />
           </div>
-          {errors.name && <p className="text-xs text-red-500 mt-1">{errors.name.message?.toString()}</p>}
+            {errors.name && <p className="text-xs text-red-500 mt-1">{errors.name.message?.toString()}</p>}
         </div>
 
         <div>
@@ -102,7 +102,7 @@ export function RegisterForm() {
             <Input 
               id="reg-phone" 
               type="tel" 
-              {...register("phone", { required: "Phone is required" })}
+              {...register("phone", { required: "Phone is required", pattern: /^[0-9]+$/ })}
               placeholder="+254 7XX XXX XXX" 
               className="pl-10 block w-full rounded-lg border-gray-200 bg-gray-50 text-text-main shadow-sm py-3 focus-visible:ring-primary-wera" 
             />

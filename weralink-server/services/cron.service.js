@@ -84,7 +84,25 @@ export class CronService {
 
             // 2. Log and potentially trigger refund logic
             // In a production system, you'd trigger a B2C refund to the Employer's M-Pesa
-            // or credit their platform balance.
+            await MpesaService.triggerB2CPayout(
+              assignment.id,
+              /*assignment.worker.phone ||*/ '254708374149',
+              assignment.gig.payAmount
+            );
+            //Ensure all data states are synchronized to be consistent/capture the current state correctly
+            //1. Update gig status to AVAILABLE if it has no other pending assignments
+            const pendingAssignments = await tx.assignment.count({
+              where: {
+                gigId: assignment.gigId,
+                status: { not: 'FAILED' }
+              }
+            });
+            if (pendingAssignments === 0) {
+              await tx.gig.update({
+                where: { id: assignment.gigId },
+                data: { status: 'AVAILABLE' }
+              });
+            }
             console.log(`[Cron] Ghost Worker: Assignment ${assignment.id} (${assignment.gig.title}) marked as FAILED.`);
           });
         } catch (error) {
@@ -148,11 +166,11 @@ export class CronService {
           console.log(`[Cron] Ghost Employer: Assignment ${assignment.id} auto-approved.`);
 
           // 2. Queue B2C Payout to worker
-          // We do this outside the transaction to avoid long-running locks during external API calls
+          //outside the transaction to avoid long-running locks during external API calls
           try {
             await MpesaService.triggerB2CPayout(
               assignment.id,
-              /*assignment.worker.phone ||*/ '+254768172782',
+              /*assignment.worker.phone ||*/ '254708374149',
               assignment.gig.payAmount
             );
             console.log(`[Cron] Payout initiated for assignment ${assignment.id}`);
@@ -160,6 +178,7 @@ export class CronService {
             console.error(`[Cron] Failed to initiate payout for assignment ${assignment.id}:`, mpesaError.message);
             // Note: Assignment is already APPROVED. A separate reconciliation job should 
             // periodically retry PENDING or MISSING payouts for APPROVED assignments.
+
           }
         } catch (error) {
           console.error(`[Cron] Failed to auto-approve assignment ${assignment.id}:`, error.message);

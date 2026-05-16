@@ -58,7 +58,7 @@ export const AppNavbar: React.FC = () => {
         
         {/* LOGO */}
         <div className="mr-8 flex items-center shrink-0">
-          <Link to="/">
+          <Link to={currentRole === 'PUBLIC' ? '/' : `/${currentRole.toLowerCase()}`}>
             <WeraLinkLogo size="md" variant="light" />
           </Link>
         </div>

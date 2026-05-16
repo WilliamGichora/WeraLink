@@ -285,7 +285,19 @@ export default function ReviewSubmission() {
           {/* Action Buttons */}
           <div className="pt-8 border-t border-slate-100 mt-10 space-y-4">
             
-            {assignment.status === 'PAID' ? (
+            {assignment.status === 'DISPUTED' ? (
+              <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-center animate-in fade-in zoom-in-95 duration-500">
+                <AlertTriangle className="w-10 h-10 text-red-500 mx-auto mb-3" />
+                <h3 className="text-lg font-black text-red-900 mb-1">Mediation in Progress</h3>
+                <p className="text-sm text-red-700 leading-relaxed">
+                  A dispute has been raised for this gig. Regular workflows (Approve/Revise) are suspended while an admin mediates the conflict.
+                </p>
+                <div className="mt-4 bg-white/50 p-3 rounded-xl border border-red-100 text-left">
+                  <p className="text-[10px] font-black uppercase text-red-600 tracking-wider mb-1">Dispute Status</p>
+                  <p className="text-xs text-red-800 font-medium italic">"Awaiting admin review of submitted evidence."</p>
+                </div>
+              </div>
+            ) : assignment.status === 'PAID' ? (
               <div className="space-y-4">
                 <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-6 text-center">
                   <CheckCircle className="w-10 h-10 text-emerald-500 mx-auto mb-3" />

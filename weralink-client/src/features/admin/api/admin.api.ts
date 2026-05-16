@@ -30,7 +30,7 @@ export const useAdminPlatformStats = () => {
 
 export const useAdminListUsers = (params: {
   page?: number; limit?: number; search?: string; role?: string; status?: string;
-  sortBy?: string; order?: string;
+  sortBy?: string; order?: string; startDate?: string; endDate?: string;
 } = {}) => {
   return useQuery({
     queryKey: ['adminUsers', params],

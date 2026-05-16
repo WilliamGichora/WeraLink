@@ -12,11 +12,11 @@ import { SupportService } from '../services/support.service.js';
 
 export const listUsers = async (req, res) => {
   try {
-    const { page, limit, search, role, status, sortBy, order } = req.query;
+    const { page, limit, search, role, status, sortBy, order, startDate, endDate } = req.query;
     const data = await AdminService.listUsers({
       page: parseInt(page) || 1,
       limit: parseInt(limit) || 20,
-      search, role, status, sortBy, order,
+      search, role, status, sortBy, order, startDate, endDate
     });
     return respond(res, 200, data);
   } catch (error) {

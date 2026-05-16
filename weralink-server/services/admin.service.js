@@ -13,11 +13,20 @@ export class AdminService {
   /**
    * Lists users with pagination, search, and role/status filtering.
    */
-  static async listUsers({ page = 1, limit = 20, search, role, status, sortBy = 'createdAt', order = 'desc' } = {}) {
+  static async listUsers({ page = 1, limit = 20, search, role, status, sortBy = 'createdAt', order = 'desc', startDate, endDate } = {}) {
     const where = {};
 
     if (role) where.role = role;
     if (status) where.status = status;
+    if (startDate || endDate) {
+      where.createdAt = {};
+      if (startDate) where.createdAt.gte = new Date(startDate);
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        where.createdAt.lte = end;
+      }
+    }
     if (search) {
       where.OR = [
         { name: { contains: search, mode: 'insensitive' } },
@@ -133,15 +142,13 @@ export class AdminService {
           title: 'Account Suspended',
           message: `Your account has been suspended. Reason: ${reason || 'Policy violation'}. Contact support for assistance.`,
           type: 'ACCOUNT_SUSPENDED',
+          linkUrl: `/worker/support`,
         },
       });
 
-      // Disable in Supabase Auth
-      try {
-        await supabase.auth.admin.updateUserById(userId, { ban_duration: 'none' });
-      } catch (err) {
-        console.error('[AdminService] Supabase ban failed (non-blocking):', err.message);
-      }
+      // NOTE: We intentionally do NOT ban in Supabase Auth here.
+      // Suspended users must still authenticate to access the Support page.
+      // Enforcement is handled by requireAuth middleware + frontend ProtectedRoute.
 
       return updated;
     });

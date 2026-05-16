@@ -60,6 +60,18 @@ export const MpesaModal = ({ isOpen, onClose, assignmentId, amount, onSuccess }:
       phoneNumber: formattedPhone 
     }, {
       onSuccess: (data) => {
+        // If the gig was already funded (Escrow Credit), it returns status: SUCCESS immediately
+        if (data.status === 'SUCCESS' || data.method === 'ESCROW_CREDIT') {
+          setStep('SUCCESS');
+          const timer = setTimeout(() => {
+            onSuccess();
+            onClose();
+            setStep('INPUT');
+          }, 2500);
+          return;
+        }
+
+        // Otherwise, it's a standard STK push, so we start polling
         setCheckoutRequestId(data.CheckoutRequestID);
         setStep('POLLING');
       },

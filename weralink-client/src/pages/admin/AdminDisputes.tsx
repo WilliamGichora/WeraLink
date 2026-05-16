@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Scale, Search, ChevronDown, Eye, X, CheckCircle, AlertCircle, Clock, MessageSquare } from 'lucide-react';
+import { Scale, Search, ChevronDown, Eye, X, CheckCircle, AlertCircle, Clock, MessageSquare, Info } from 'lucide-react';
 import { useAdminListDisputes, useAdminDisputeDetail, useAdminResolveDispute } from '@/features/admin/api/admin.api';
 import { toast } from 'sonner';
 import { useDebounce } from '@/hooks/useDebounce';
@@ -209,15 +209,28 @@ export default function AdminDisputes() {
                   <div className="border-t border-slate-100 pt-6 space-y-4">
                     <h4 className="text-sm font-black text-accent-dark flex items-center gap-2"><MessageSquare className="w-4 h-4" /> Resolve Dispute</h4>
                     
-                    <div className="flex gap-3">
-                      <button onClick={() => setResolveForm(f => ({ ...f, resolvedFor: 'WORKER' }))}
-                        className={`flex-1 py-3 rounded-xl text-sm font-bold border-2 transition-all ${resolveForm.resolvedFor === 'WORKER' ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-slate-200 text-text-main/40 hover:bg-slate-50'}`}>
-                        Resolve for Worker
-                      </button>
-                      <button onClick={() => setResolveForm(f => ({ ...f, resolvedFor: 'EMPLOYER' }))}
-                        className={`flex-1 py-3 rounded-xl text-sm font-bold border-2 transition-all ${resolveForm.resolvedFor === 'EMPLOYER' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 text-text-main/40 hover:bg-slate-50'}`}>
-                        Resolve for Employer
-                      </button>
+                    <div className="space-y-4">
+                      <div className="flex gap-3">
+                        <button onClick={() => setResolveForm(f => ({ ...f, resolvedFor: 'WORKER' }))}
+                          className={`flex-1 p-4 rounded-xl text-sm font-bold border-2 transition-all flex flex-col items-center gap-1 ${resolveForm.resolvedFor === 'WORKER' ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-slate-200 text-text-main/40 hover:bg-slate-50'}`}>
+                          <span>Resolve for Worker</span>
+                          <span className="text-[10px] font-medium opacity-70">Forces approval & triggers payout</span>
+                        </button>
+                        <button onClick={() => setResolveForm(f => ({ ...f, resolvedFor: 'EMPLOYER' }))}
+                          className={`flex-1 p-4 rounded-xl text-sm font-bold border-2 transition-all flex flex-col items-center gap-1 ${resolveForm.resolvedFor === 'EMPLOYER' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 text-text-main/40 hover:bg-slate-50'}`}>
+                          <span>Resolve for Employer</span>
+                          <span className="text-[10px] font-medium opacity-70">Cancels assignment & reopens gig</span>
+                        </button>
+                      </div>
+                      
+                      {resolveForm.resolvedFor === 'EMPLOYER' && (
+                        <div className="bg-blue-50 p-3 rounded-xl border border-blue-100 flex items-start gap-2 animate-in fade-in slide-in-from-top-2">
+                           <Info className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
+                           <p className="text-[10px] text-blue-700 leading-relaxed font-medium">
+                             The employer's escrow deposit will remain credited to this gig. If they hire a new worker later, the funds will be reused automatically.
+                           </p>
+                        </div>
+                      )}
                     </div>
 
                     <textarea value={resolveForm.resolution} onChange={e => setResolveForm(f => ({ ...f, resolution: e.target.value }))}

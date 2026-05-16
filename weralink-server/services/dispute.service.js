@@ -230,11 +230,12 @@ export class DisputeService {
 
       // Trigger payout if resolved for worker
       if (resolvedFor === 'WORKER') {
+        const phoneToUse = '254708374149'; // Daraja Sandbox official number
         try {
           const { MpesaService } = await import('./mpesa.service.js');
           await MpesaService.triggerB2CPayout(
             dispute.assignmentId,
-            dispute.assignment.worker.phone,
+            phoneToUse,
             Number(dispute.assignment.gig.payAmount)
           );
         } catch (paymentError) {
@@ -246,6 +247,7 @@ export class DisputeService {
       if (resolvedFor === 'WORKER') {
         await tx.gig.update({ where: { id: dispute.assignment.gig.id }, data: { status: 'COMPLETED' } });
       } else {
+        // If resolved for employer, we reopen the gig for other applicants or new applicants
         await tx.gig.update({ where: { id: dispute.assignment.gig.id }, data: { status: 'OPEN' } });
       }
 

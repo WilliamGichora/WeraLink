@@ -278,14 +278,36 @@ export const GigDetailView: React.FC<GigDetailViewProps> = ({ viewerRole = 'work
                         
                         <div className="space-y-3 relative z-10">
                             {(gig.evidenceTemplate as any[] || []).map((ev, i) => (
-                                <div key={i} className="flex items-center gap-4 bg-white/5 p-3 rounded-lg border border-white/10">
-                                    <div className="bg-primary-wera/20 p-2 rounded-full shrink-0 text-primary-wera">
-                                        <FileIcon type={ev.type} />
+                                <div key={i} className="flex flex-col bg-white/5 p-4 rounded-xl border border-white/10 group hover:bg-white/10 transition-colors">
+                                    <div className="flex items-center gap-4 mb-2">
+                                        <div className="bg-primary-wera/20 p-2.5 rounded-lg shrink-0 text-primary-wera group-hover:scale-110 transition-transform">
+                                            <FileIcon type={ev.type} />
+                                        </div>
+                                        <div className="flex-1">
+                                            <div className="flex items-center justify-between">
+                                                <p className="font-bold text-sm text-gray-100">{ev.label}</p>
+                                                {ev.required && <span className="text-[9px] font-black bg-primary-wera/20 text-primary-wera px-1.5 py-0.5 rounded uppercase tracking-tighter">Required</span>}
+                                            </div>
+                                            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">{ev.type}</p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <p className="font-semibold text-sm">{ev.label}</p>
-                                        <p className="text-xs text-gray-400">{ev.required ? 'Verification' : 'Optional'}</p>
-                                    </div>
+                                    
+                                    {/* Detailed validation info */}
+                                    {(ev.accept?.length > 0 || ev.pattern || ev.maxSizeMB) && (
+                                        <div className="pl-14 flex flex-wrap gap-2">
+                                            {ev.accept?.map((ext: string) => (
+                                                <span key={ext} className="text-[9px] font-bold bg-white/5 text-gray-400 px-2 py-0.5 rounded border border-white/5 uppercase">{ext.replace('.', '')}</span>
+                                            ))}
+                                            {ev.maxSizeMB && (
+                                                <span className="text-[9px] font-bold bg-primary-wera/10 text-primary-wera/80 px-2 py-0.5 rounded border border-primary-wera/10 uppercase">Max {ev.maxSizeMB}MB</span>
+                                            )}
+                                            {ev.pattern && (
+                                                <span className="text-[9px] font-bold bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded border border-blue-500/10 truncate max-w-[150px]" title={ev.pattern}>
+                                                    Pattern: {ev.pattern}
+                                                </span>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                             ))}
                         </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect, ChangeEvent } from 'react';
-import { ArrowLeft, Info, Send, Save, Camera, CheckCircle, UploadCloud, Link as LinkIcon, FileText, AlertCircle, X } from 'lucide-react';
+import { ArrowLeft, Info, Send, Save, Camera, CheckCircle, UploadCloud, Link as LinkIcon, FileText, AlertCircle, X, AlertTriangle } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useGetAssignmentById, useSubmitWork, useGetPresignedUrl, uploadFileToPresignedUrl } from '@/features/execution/api/execution.api';
 import { WorkflowStepper } from '@/features/execution/components/WorkflowStepper';
@@ -8,6 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
+import { RaiseDisputeModal } from '@/features/disputes/components/RaiseDisputeModal';
 
 interface EvidenceItemState {
   id: string;
@@ -15,9 +16,13 @@ interface EvidenceItemState {
   label: string;
   required: boolean;
   value: string; // URL or text content
+  accept?: string[];
+  pattern?: string;
+  maxSizeMB?: number;
   fileName?: string;
   isUploading?: boolean;
   isCompleted?: boolean;
+  error?: string;
 }
 
 export const SubmitEvidence = () => {
@@ -25,8 +30,9 @@ export const SubmitEvidence = () => {
   const navigate = useNavigate();
   const [notes, setNotes] = useState('');
   const [evidenceStates, setEvidenceStates] = useState<EvidenceItemState[]>([]);
-  
-  const { data: assignment, isLoading, isError } = useGetAssignmentById(id);
+  const [isDisputeModalOpen, setIsDisputeModalOpen] = useState(false);
+
+  const { data: assignment, isLoading, isError, refetch } = useGetAssignmentById(id);
   const { mutateAsync: submitWork, isPending: isSubmitting } = useSubmitWork();
   const { mutateAsync: getPresignedUrl } = useGetPresignedUrl();
 
@@ -34,14 +40,17 @@ export const SubmitEvidence = () => {
     if (assignment?.gig?.evidenceTemplate) {
       const template = assignment.gig.evidenceTemplate as any[];
       const existingEvidence = assignment.evidence || [];
-      
+
       setEvidenceStates(template.map(item => {
-        const existing = existingEvidence.find((ev: any) => ev.requirementTag === item.id);
+        const existing = existingEvidence.find((ev: any) => ev.requirementTag === item.tag || ev.requirementTag === item.id);
         return {
-          id: item.id || Math.random().toString(36).substr(2, 9),
+          id: item.tag || item.id || Math.random().toString(36).substr(2, 9),
           type: item.type,
           label: item.label,
           required: item.required || false,
+          accept: item.accept,
+          pattern: item.pattern,
+          maxSizeMB: item.maxSizeMB || 10,
           value: existing?.fileUrl || '',
           fileName: existing?.fileUrl ? existing.fileUrl.split('/').pop() : undefined,
           isCompleted: !!existing?.fileUrl
@@ -55,16 +64,35 @@ export const SubmitEvidence = () => {
   }, [assignment]);
 
   const handleFileChange = async (index: number, file: File) => {
+    const item = evidenceStates[index];
     const updatedStates = [...evidenceStates];
+
+    // 1. Validate File Extension
+    if (item.accept && item.accept.length > 0) {
+      const ext = '.' + file.name.split('.').pop()?.toLowerCase();
+      if (!item.accept.includes(ext)) {
+        toast.error(`Invalid file format. Accepted: ${item.accept.join(', ')}`);
+        return;
+      }
+    }
+
+    // 2. Validate File Size
+    const maxSize = (item.maxSizeMB || 10) * 1024 * 1024;
+    if (file.size > maxSize) {
+      toast.error(`File too large. Maximum size is ${item.maxSizeMB || 10}MB`);
+      return;
+    }
+
     updatedStates[index].isUploading = true;
     updatedStates[index].fileName = file.name;
+    updatedStates[index].error = undefined;
     setEvidenceStates(updatedStates);
 
     try {
       // 1. Get presigned URL
-      const { signedUploadUrl, path } = await getPresignedUrl({ 
-        assignmentId: id!, 
-        fileName: file.name 
+      const { signedUploadUrl, path } = await getPresignedUrl({
+        assignmentId: id!,
+        fileName: file.name
       });
 
       // 2. Upload to Supabase
@@ -81,15 +109,27 @@ export const SubmitEvidence = () => {
       console.error('Upload failed:', error);
       const errorStates = [...evidenceStates];
       errorStates[index].isUploading = false;
+      errorStates[index].error = 'Upload failed. Please try again.';
       setEvidenceStates(errorStates);
       toast.error(`Failed to upload ${file.name}`);
     }
   };
 
   const handleTextChange = (index: number, value: string) => {
+    const item = evidenceStates[index];
     const updatedStates = [...evidenceStates];
+
+    let error = undefined;
+    if (item.type === 'LINK' && item.pattern && value.trim().length > 0) {
+      const regex = new RegExp(item.pattern);
+      if (!regex.test(value)) {
+        error = `Link must match the required pattern.`;
+      }
+    }
+
     updatedStates[index].value = value;
-    updatedStates[index].isCompleted = value.trim().length > 0;
+    updatedStates[index].error = error;
+    updatedStates[index].isCompleted = value.trim().length > 0 && !error;
     setEvidenceStates(updatedStates);
   };
 
@@ -144,16 +184,16 @@ export const SubmitEvidence = () => {
   return (
     <div className="min-h-screen bg-background-light py-8 font-sans">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        
+
         {/* Header Area */}
         <div className="bg-accent-dark rounded-2xl p-6 mb-8 shadow-xl relative overflow-hidden">
           <div className="absolute inset-0 opacity-5">
             <div className="absolute right-0 top-0 w-64 h-64 bg-primary-wera rounded-full blur-3xl"></div>
           </div>
-          
+
           <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex flex-col md:flex-row md:items-center gap-4">
-              <Button 
+              <Button
                 variant="ghost"
                 onClick={() => navigate('/worker/assignments')}
                 className="text-gray-300 hover:text-white hover:bg-white/10"
@@ -167,7 +207,7 @@ export const SubmitEvidence = () => {
                 <p className="text-gray-400 text-sm">Employer: {assignment.gig.employer?.name || 'WeraLink Member'}</p>
               </div>
             </div>
-            
+
             <div className="bg-white/10 px-4 py-2 rounded-full border border-white/10 backdrop-blur-sm">
               <span className="flex items-center text-sm font-bold text-primary-wera">
                 <span className="w-2 h-2 rounded-full bg-primary-wera mr-2 animate-pulse"></span>
@@ -197,206 +237,271 @@ export const SubmitEvidence = () => {
           </div>
         )}
 
-        <div className="flex flex-col lg:flex-row gap-8">
-          {/* Main Content */}
-          <div className="w-full lg:w-2/3 space-y-8">
-            
-            {/* Gig Info */}
-            <Card className="border-primary-wera/10 shadow-sm overflow-hidden bg-white">
-              <div className="bg-slate-50 p-6 border-b border-slate-100 flex items-center justify-between">
-                <h2 className="text-xl font-bold text-accent-dark flex items-center gap-2">
-                  <Camera className="w-5 h-5 text-primary-wera" /> Evidence Submission
-                </h2>
-                <Badge variant="outline" className="text-primary-wera border-primary-wera/20">
-                  {evidenceStates.length} Requirements
-                </Badge>
+        {/* If assignment status is CANCELLED, CANNOT SUBMIT EVIDENCE. show a div with that information instead of the main content, else, the main content*/}
+        {assignment.status === 'CANCELLED'? (
+          <div className="mb-8 bg-red-50 border border-red-200 rounded-2xl p-6 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
+            <div className="flex items-start gap-4">
+              <div className="bg-red-100 p-3 rounded-xl text-red-600">
+                <AlertCircle className="w-6 h-6" />
               </div>
-              <CardContent className="p-8 space-y-8">
-                {evidenceStates.map((item, index) => (
-                  <div key={item.id} className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <label className="text-sm font-bold text-accent-dark flex items-center gap-2">
-                        {item.type === 'FILE' || item.type === 'IMAGE' ? <UploadCloud className="w-4 h-4" /> : 
-                         item.type === 'LINK' ? <LinkIcon className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
-                        {item.label}
-                        {item.required && <span className="text-red-500">*</span>}
-                      </label>
-                      {item.isCompleted && (
-                        <span className="text-xs font-bold text-green-600 flex items-center gap-1">
-                          <CheckCircle className="w-3 h-3" /> Ready
-                        </span>
-                      )}
-                    </div>
-
-                    {(item.type === 'FILE' || item.type === 'IMAGE') ? (
-                      <div className="relative group">
-                        <div className={`border-2 border-dashed rounded-xl p-8 text-center transition-all ${
-                          item.isCompleted ? 'border-green-200 bg-green-50/30' : 'border-slate-200 hover:border-primary-wera hover:bg-slate-50'
-                        }`}>
-                          {item.isUploading ? (
-                            <div className="flex flex-col items-center">
-                              <div className="w-8 h-8 border-3 border-primary-wera border-t-transparent rounded-full animate-spin mb-2"></div>
-                              <p className="text-sm font-medium text-slate-500">Uploading {item.fileName}...</p>
-                            </div>
-                          ) : item.isCompleted ? (
-                            <div className="flex flex-col items-center">
-                              <div className="bg-green-100 p-3 rounded-full mb-2">
-                                <CheckCircle className="w-6 h-6 text-green-600" />
-                              </div>
-                              <p className="text-sm font-bold text-green-700">{item.fileName || 'File uploaded'}</p>
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                className="mt-2 text-slate-400 hover:text-red-500"
-                                onClick={() => {
-                                  const reset = [...evidenceStates];
-                                  reset[index].isCompleted = false;
-                                  reset[index].value = '';
-                                  setEvidenceStates(reset);
-                                }}
-                              >
-                                <X className="w-4 h-4 mr-1" /> Remove
-                              </Button>
-                            </div>
-                          ) : (
-                            <div className="flex flex-col items-center cursor-pointer">
-                              <UploadCloud className="w-10 h-10 text-slate-300 mb-2 group-hover:text-primary-wera transition-colors" />
-                              <p className="text-sm font-medium text-slate-500">Click or drag to upload {item.type.toLowerCase()}</p>
-                              <p className="text-xs text-slate-400 mt-1">Max 10MB</p>
-                              <input 
-                                type="file" 
-                                title={`Upload ${item.label}`}
-                                className="absolute inset-0 opacity-0 cursor-pointer" 
-                                accept={item.type === 'IMAGE' ? 'image/*' : '*/*'}
-                                onChange={(e) => e.target.files?.[0] && handleFileChange(index, e.target.files[0])}
-                              />
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ) : item.type === 'LINK' ? (
-                      <div className="relative">
-                        <Input 
-                          placeholder="https://..." 
-                          value={item.value}
-                          onChange={(e) => handleTextChange(index, e.target.value)}
-                          className="pl-10 h-12 rounded-xl"
-                        />
-                        <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                      </div>
-                    ) : (
-                      <Textarea 
-                        placeholder="Type your submission content here..."
-                        value={item.value}
-                        onChange={(e: ChangeEvent<HTMLTextAreaElement>) => handleTextChange(index, e.target.value)}
-                        className="min-h-[120px] rounded-xl resize-none"
-                      />
-                    )}
-                  </div>
-                ))}
-
-                <div className="pt-6 border-t border-slate-100">
-                  <label className="text-sm font-bold text-accent-dark block mb-4">Completion Notes</label>
-                  <Textarea 
-                    placeholder="Add any additional context for the employer..."
-                    value={notes}
-                    onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setNotes(e.target.value)}
-                    className="min-h-[100px] rounded-xl resize-none"
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-          </div>
-
-          {/* Sidebar */}
-          <aside className="w-full lg:w-1/3 space-y-6">
-            
-            {/* Gig Summary Card */}
-            <Card className="bg-white border-primary-wera/10 shadow-sm overflow-hidden">
-              <CardContent className="p-6">
-                <h3 className="font-bold text-accent-dark mb-4">Project Summary</h3>
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-primary-wera/10 flex items-center justify-center text-primary-wera">
-                      <Camera className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-500 uppercase font-bold tracking-wider">Gig</p>
-                      <p className="font-bold text-accent-dark text-sm">{assignment.gig.title}</p>
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-50">
-                    <div>
-                      <p className="text-[10px] text-slate-400 uppercase font-bold">Reward</p>
-                      <p className="font-bold text-primary-wera">{assignment.gig.currency} {assignment.gig.payAmount.toLocaleString()}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] text-slate-400 uppercase font-bold">Category</p>
-                      <p className="font-bold text-accent-dark text-xs">{assignment.gig.category.replace('_', ' ')}</p>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Stepper */}
-            <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
-              <WorkflowStepper currentStatus={assignment.status} assignedAt={new Date(assignment.createdAt).toLocaleDateString()} />
-            </div>
-
-            {/* Support Notice */}
-            <div className="bg-accent-dark rounded-2xl p-6 text-white relative overflow-hidden shadow-lg">
-              <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-primary-wera/10 rounded-full"></div>
-              <div className="relative z-10">
-                <h4 className="font-bold flex items-center gap-2 mb-2">
-                  <Info className="w-5 h-5 text-primary-wera" /> Payment Guarantee
-                </h4>
-                <p className="text-xs text-slate-400 leading-relaxed">
-                  Your funds are secured in escrow. Once you submit and the employer approves, the payout will be triggered automatically to your M-Pesa.
+              <div className="flex-1">
+                <h3 className="text-red-900 font-bold text-lg mb-1">Assignment Cancelled</h3>
+                <p className="text-red-800 text-sm leading-relaxed mb-4">
+                  This assignment has been cancelled by the employer. You cannot submit evidence for a cancelled assignment.
                 </p>
               </div>
             </div>
+          </div>
+        ) : (
+            <div className="flex flex-col lg:flex-row gap-8">
+              {/* Main Content */}
+              <div className="w-full lg:w-2/3 space-y-8">
 
-            {/* Action Bar */}
-            <div className="space-y-3">
-              <Button 
-                onClick={handleSubmit}
-                disabled={isSubmitting}
-                className="w-full bg-primary-wera hover:bg-primary-dark text-white h-14 rounded-xl font-bold text-lg shadow-lg shadow-primary-wera/20 group"
-              >
-                {isSubmitting ? (
-                  <>
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"></div>
-                    Submitting...
-                  </>
-                ) : (
-                  <>
-                    Submit Work <Send className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
-                  </>
-                )}
-              </Button>
-              <Button 
-                variant="outline" 
-                className="w-full h-12 rounded-xl border-slate-200 text-slate-500 font-bold"
-                onClick={() => toast.info('Draft saved locally')}
-              >
-                <Save className="w-4 h-4 mr-2" /> Save Draft
-              </Button>
+                {/* Gig Info */}
+                <Card className="border-primary-wera/10 shadow-sm overflow-hidden bg-white">
+                  <div className="bg-slate-50 p-6 border-b border-slate-100 flex items-center justify-between">
+                    <h2 className="text-xl font-bold text-accent-dark flex items-center gap-2">
+                      <Camera className="w-5 h-5 text-primary-wera" /> Evidence Submission
+                    </h2>
+                    <Badge variant="outline" className="text-primary-wera border-primary-wera/20">
+                      {evidenceStates.length} Requirements
+                    </Badge>
+                  </div>
+                  <CardContent className="p-8 space-y-8">
+                    {evidenceStates.map((item, index) => (
+                      <div key={item.id} className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <label className="text-sm font-bold text-accent-dark flex items-center gap-2">
+                            {item.type === 'FILE' || item.type === 'IMAGE' ? <UploadCloud className="w-4 h-4" /> :
+                              item.type === 'LINK' ? <LinkIcon className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
+                            {item.label}
+                            {item.required && <span className="text-red-500">*</span>}
+                          </label>
+                          {item.isCompleted && (
+                            <span className="text-xs font-bold text-green-600 flex items-center gap-1">
+                              <CheckCircle className="w-3 h-3" /> Ready
+                            </span>
+                          )}
+                        </div>
+
+                        {(item.type === 'FILE' || item.type === 'IMAGE') ? (
+                          <div className="relative group">
+                            <div className={`border-2 border-dashed rounded-xl p-8 text-center transition-all ${item.isCompleted ? 'border-green-200 bg-green-50/30' :
+                              item.error ? 'border-red-200 bg-red-50/30' :
+                                'border-slate-200 hover:border-primary-wera hover:bg-slate-50'
+                              }`}>
+                              {item.isUploading ? (
+                                <div className="flex flex-col items-center">
+                                  <div className="w-8 h-8 border-3 border-primary-wera border-t-transparent rounded-full animate-spin mb-2"></div>
+                                  <p className="text-sm font-medium text-slate-500">Uploading {item.fileName}...</p>
+                                </div>
+                              ) : item.isCompleted ? (
+                                <div className="flex flex-col items-center">
+                                  <div className="bg-green-100 p-3 rounded-full mb-2">
+                                    <CheckCircle className="w-6 h-6 text-green-600" />
+                                  </div>
+                                  <p className="text-sm font-bold text-green-700">{item.fileName || 'File uploaded'}</p>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="mt-2 text-slate-400 hover:text-red-500"
+                                    onClick={() => {
+                                      const reset = [...evidenceStates];
+                                      reset[index].isCompleted = false;
+                                      reset[index].value = '';
+                                      setEvidenceStates(reset);
+                                    }}
+                                  >
+                                    <X className="w-4 h-4 mr-1" /> Remove
+                                  </Button>
+                                </div>
+                              ) : (
+                                <div className="flex flex-col items-center cursor-pointer">
+                                  <UploadCloud className="w-10 h-10 text-slate-300 mb-2 group-hover:text-primary-wera transition-colors" />
+                                  <p className="text-sm font-medium text-slate-500">Click or drag to upload {item.type.toLowerCase()}</p>
+
+                                  <div className="flex flex-wrap justify-center gap-2 mt-2">
+                                    {item.accept && item.accept.length > 0 ? (
+                                      item.accept.map(ext => (
+                                        <span key={ext} className="text-[10px] font-bold bg-slate-100 text-slate-500 px-2 py-0.5 rounded uppercase">{ext.replace('.', '')}</span>
+                                      ))
+                                    ) : (
+                                      <span className="text-[10px] font-bold bg-slate-100 text-slate-500 px-2 py-0.5 rounded uppercase">Any File</span>
+                                    )}
+                                    <span className="text-[10px] font-bold bg-primary-wera/10 text-primary-wera px-2 py-0.5 rounded uppercase">Max {item.maxSizeMB}MB</span>
+                                  </div>
+
+                                  <input
+                                    type="file"
+                                    title={`Upload ${item.label}`}
+                                    className="absolute inset-0 opacity-0 cursor-pointer"
+                                    accept={item.type === 'IMAGE' ? 'image/*' : (item.accept?.join(',') || '*/*')}
+                                    onChange={(e) => e.target.files?.[0] && handleFileChange(index, e.target.files[0])}
+                                  />
+                                </div>
+                              )}
+                            </div>
+                            {item.error && <p className="text-red-500 text-xs font-bold mt-2 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {item.error}</p>}
+                          </div>
+                        ) : item.type === 'LINK' ? (
+                          <div className="space-y-2">
+                            <div className="relative">
+                              <Input
+                                placeholder="https://..."
+                                value={item.value}
+                                onChange={(e) => handleTextChange(index, e.target.value)}
+                                className={`pl-10 h-12 rounded-xl ${item.error ? 'border-red-500 focus:ring-red-500' : ''}`}
+                              />
+                              <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                            </div>
+                            {item.pattern && <p className="text-[10px] text-slate-400 font-medium">Requirement: Must match <code>{item.pattern}</code></p>}
+                            {item.error && <p className="text-red-500 text-xs font-bold mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {item.error}</p>}
+                          </div>
+                        ) : (
+                          <Textarea
+                            placeholder="Type your submission content here..."
+                            value={item.value}
+                            onChange={(e: ChangeEvent<HTMLTextAreaElement>) => handleTextChange(index, e.target.value)}
+                            className="min-h-[120px] rounded-xl resize-none"
+                          />
+                        )}
+                      </div>
+                    ))}
+
+                    <div className="pt-6 border-t border-slate-100">
+                      <label className="text-sm font-bold text-accent-dark block mb-4">Completion Notes</label>
+                      <Textarea
+                        placeholder="Add any additional context for the employer..."
+                        value={notes}
+                        onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setNotes(e.target.value)}
+                        className="min-h-[100px] rounded-xl resize-none"
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+
+              </div>
+
+              {/* Sidebar */}
+              <aside className="w-full lg:w-1/3 space-y-6">
+
+                {/* Gig Summary Card */}
+                <Card className="bg-white border-primary-wera/10 shadow-sm overflow-hidden">
+                  <CardContent className="p-6">
+                    <h3 className="font-bold text-accent-dark mb-4">Project Summary</h3>
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-primary-wera/10 flex items-center justify-center text-primary-wera">
+                          <Camera className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-slate-500 uppercase font-bold tracking-wider">Gig</p>
+                          <p className="font-bold text-accent-dark text-sm">{assignment.gig.title}</p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-50">
+                        <div>
+                          <p className="text-[10px] text-slate-400 uppercase font-bold">Reward</p>
+                          <p className="font-bold text-primary-wera">{assignment.gig.currency} {assignment.gig.payAmount.toLocaleString()}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] text-slate-400 uppercase font-bold">Category</p>
+                          <p className="font-bold text-accent-dark text-xs">{assignment.gig.category.replace('_', ' ')}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Stepper */}
+                <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
+                  <WorkflowStepper currentStatus={assignment.status} assignedAt={new Date(assignment.createdAt).toLocaleDateString()} />
+                </div>
+
+                {/* Support Notice */}
+                <div className="bg-accent-dark rounded-2xl p-6 text-white relative overflow-hidden shadow-lg">
+                  <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-primary-wera/10 rounded-full"></div>
+                  <div className="relative z-10">
+                    <h4 className="font-bold flex items-center gap-2 mb-2">
+                      <Info className="w-5 h-5 text-primary-wera" /> Payment Guarantee
+                    </h4>
+                    <p className="text-xs text-slate-400 leading-relaxed">
+                      Your funds are secured in escrow. Once you submit and the employer approves, the payout will be triggered automatically to your M-Pesa.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Action Bar */}
+                <div className="space-y-3">
+                  {assignment.status === 'DISPUTED' ? (
+                    <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-center animate-in fade-in zoom-in-95 duration-500">
+                      <AlertTriangle className="w-10 h-10 text-red-500 mx-auto mb-3" />
+                      <h3 className="text-sm font-black text-red-900 mb-1">Mediation in Progress</h3>
+                      <p className="text-[10px] text-red-700 leading-relaxed">
+                        A dispute has been raised for this assignment. Regular submission workflows are locked while an admin mediates the conflict.
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <Button
+                        onClick={handleSubmit}
+                        disabled={isSubmitting}
+                        className="w-full bg-primary-wera hover:bg-primary-dark text-white h-14 rounded-xl font-bold text-lg shadow-lg shadow-primary-wera/20 group"
+                      >
+                        {isSubmitting ? (
+                          <>
+                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"></div>
+                            Submitting...
+                          </>
+                        ) : (
+                          <>
+                            Submit Work <Send className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="w-full h-12 rounded-xl border-slate-200 text-slate-500 font-bold"
+                        onClick={() => toast.info('Draft saved locally')}
+                      >
+                        <Save className="w-4 h-4 mr-2" /> Save Draft
+                      </Button>
+
+                      <div className="pt-4 border-t border-slate-100">
+                        <Button
+                          variant="ghost"
+                          onClick={() => setIsDisputeModalOpen(true)}
+                          className="w-full text-red-500 hover:bg-red-50 hover:text-red-600 font-bold text-xs"
+                        >
+                          <AlertTriangle className="w-4 h-4 mr-2" /> Raise Dispute
+                        </Button>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+              </aside>
             </div>
-
-          </aside>
-        </div>
+        )}
+        
+        
       </div>
+
+      <RaiseDisputeModal
+        open={isDisputeModalOpen}
+        onClose={() => setIsDisputeModalOpen(false)}
+        assignmentId={id!}
+        gigTitle={assignment.gig.title}
+        onSuccess={() => refetch()}
+      />
     </div>
   );
 };
 
 const Badge = ({ children, variant, className }: any) => (
-  <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
-    variant === 'outline' ? 'border' : 'bg-slate-100 text-slate-600'
-  } ${className}`}>
+  <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${variant === 'outline' ? 'border' : 'bg-slate-100 text-slate-600'
+    } ${className}`}>
     {children}
   </span>
 );

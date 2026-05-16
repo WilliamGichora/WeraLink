@@ -4,6 +4,7 @@ import { parsePagination } from '../utils/pagination.js';
 import {
     VALID_CATEGORIES,
     VALID_WORK_TYPES,
+    VALID_DIFFICULTIES,
     VALID_GIG_STATUSES,
     VALID_SORT_FIELDS,
     VALID_SORT_ORDERS,
@@ -135,7 +136,7 @@ export const getGigs = async (req, res) => {
 
         // Multi-select Difficulty Levels
         if (difficulty && typeof difficulty === 'string') {
-            const levels = difficulty.split(',').map(l => l.trim().toUpperCase()).filter(l => ['BEGINNER', 'INTERMEDIATE', 'EXPERT'].includes(l));
+            const levels = difficulty.split(',').map(l => l.trim().toUpperCase()).filter(l => VALID_DIFFICULTIES.includes(l));
             if (levels.length > 0) {
                 andClauses.push({ difficulty: { in: levels } });
             }
@@ -231,12 +232,29 @@ export const getMyGigs = async (req, res) => {
     try {
         const employerId = req.user.id;
         const { page, limit, skip } = parsePagination(req.query);
-        const { status, sort = 'createdAt', order = 'desc' } = req.query;
+        const { status, sort = 'createdAt', order = 'desc', category, startDate, endDate } = req.query;
 
         const where = { employerId };
 
         if (status && VALID_GIG_STATUSES.includes(status.toUpperCase())) {
             where.status = status.toUpperCase();
+        }
+
+        if (category && typeof category === 'string') {
+            const categories = category.split(',').map(c => c.trim().toUpperCase()).filter(c => VALID_CATEGORIES.includes(c));
+            if (categories.length > 0) {
+                where.category = { in: categories };
+            }
+        }
+
+        if (startDate || endDate) {
+            where.createdAt = {};
+            if (startDate) where.createdAt.gte = new Date(startDate);
+            if (endDate) {
+                const end = new Date(endDate);
+                end.setHours(23, 59, 59, 999);
+                where.createdAt.lte = end;
+            }
         }
 
         const sortField = VALID_SORT_FIELDS.includes(sort) ? sort : 'createdAt';
@@ -374,7 +392,7 @@ export const updateGig = async (req, res) => {
         }
 
         const {
-            title, description, category, workType,
+            title, description, category, workType, difficulty,
             payAmount, currency, location, expiresAt,
             evidenceTemplate, skills,
         } = req.body;
@@ -570,6 +588,7 @@ export const repostGig = async (req, res) => {
                     description: existing.description,
                     category: existing.category,
                     workType: existing.workType,
+                    difficulty: existing.difficulty,
                     payAmount: existing.payAmount,
                     currency: existing.currency,
                     location: existing.location,
