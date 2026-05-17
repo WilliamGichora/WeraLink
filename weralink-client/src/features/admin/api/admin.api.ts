@@ -170,3 +170,188 @@ export const useAdminUpdateTicket = () => {
     onError: (err) => { throw new Error(extractErrorMessage(err)); },
   });
 };
+
+// ─── Gig Management (Admin) ────────────────────────────────
+
+export const useAdminListGigs = (params: {
+  page?: number; limit?: number; search?: string; status?: string; difficulty?: string;
+  category?: string; employerId?: string; workerId?: string; startDate?: string; endDate?: string;
+  sortBy?: string; order?: string;
+} = {}) => {
+  return useQuery({
+    queryKey: ['adminGigs', params],
+    queryFn: async () => {
+      const { data } = await api.get('/admin/gigs', { params });
+      return data.data;
+    },
+  });
+};
+
+export const useAdminGigDetail = (gigId: string | null) => {
+  return useQuery({
+    queryKey: ['adminGigDetail', gigId],
+    queryFn: async () => {
+      if (!gigId) return null;
+      const { data } = await api.get(`/admin/gigs/${gigId}`);
+      return data.data;
+    },
+    enabled: !!gigId,
+  });
+};
+
+// ─── LMS & Learning Hub Management (Admin) ─────────────────
+
+export interface LmsSkill {
+  id: string;
+  name: string;
+  category: string;
+}
+
+export interface LmsOption {
+  id?: string;
+  text: string;
+  isCorrect: boolean;
+}
+
+export interface LmsQuestion {
+  id?: string;
+  text: string;
+  options: LmsOption[];
+}
+
+export interface LmsCompletion {
+  id: string;
+  score: number;
+  passed: boolean;
+  completedAt: string;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+  };
+}
+
+export interface LmsModule {
+  id: string;
+  title: string;
+  skillId: string;
+  videoUrl?: string | null;
+  docUrl?: string | null;
+  passScore: number;
+  isActive: boolean;
+  createdAt: string;
+  skill: LmsSkill;
+  questions?: LmsQuestion[];
+  completions?: LmsCompletion[];
+  stats: {
+    totalCompletions: number;
+    passedCompletions: number;
+    avgScore: number;
+    passRate: number;
+  };
+  _count?: {
+    questions: number;
+  };
+}
+
+export const useAdminListLmsModules = (params: {
+  page?: number; limit?: number; search?: string; category?: string;
+  skillId?: string; isActive?: string | boolean; startDate?: string; endDate?: string;
+  sortBy?: string; order?: string;
+} = {}) => {
+  return useQuery({
+    queryKey: ['adminLmsModules', params],
+    queryFn: async () => {
+      const { data } = await api.get('/admin/lms/modules', { params });
+      return data.data as {
+        modules: LmsModule[];
+        pagination: { page: number; limit: number; total: number; totalPages: number };
+      };
+    },
+  });
+};
+
+export const useAdminLmsModuleDetail = (moduleId: string | null) => {
+  return useQuery({
+    queryKey: ['adminLmsModuleDetail', moduleId],
+    queryFn: async () => {
+      if (!moduleId) return null;
+      const { data } = await api.get(`/admin/lms/modules/${moduleId}`);
+      return data.data as LmsModule;
+    },
+    enabled: !!moduleId,
+  });
+};
+
+export const useAdminCreateLmsModule = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: {
+      title: string;
+      skillId: string;
+      videoUrl?: string;
+      docUrl?: string;
+      passScore?: number;
+      isActive?: boolean;
+      questions?: { text: string; options: { text: string; isCorrect: boolean }[] }[];
+    }) => {
+      const { data } = await api.post('/admin/lms/modules', payload);
+      return data.data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['adminLmsModules'] });
+    },
+    onError: (err) => { throw new Error(extractErrorMessage(err)); },
+  });
+};
+
+export const useAdminUpdateLmsModule = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ moduleId, payload }: {
+      moduleId: string;
+      payload: {
+        title?: string;
+        skillId?: string;
+        videoUrl?: string;
+        docUrl?: string;
+        passScore?: number;
+        isActive?: boolean;
+        questions?: { text: string; options: { text: string; isCorrect: boolean }[] }[];
+      };
+    }) => {
+      const { data } = await api.patch(`/admin/lms/modules/${moduleId}`, payload);
+      return data.data;
+    },
+    onSuccess: (_, variables) => {
+      qc.invalidateQueries({ queryKey: ['adminLmsModules'] });
+      qc.invalidateQueries({ queryKey: ['adminLmsModuleDetail', variables.moduleId] });
+    },
+    onError: (err) => { throw new Error(extractErrorMessage(err)); },
+  });
+};
+
+export const useAdminDeleteLmsModule = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (moduleId: string) => {
+      const { data } = await api.delete(`/admin/lms/modules/${moduleId}`);
+      return data.data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['adminLmsModules'] });
+    },
+    onError: (err) => { throw new Error(extractErrorMessage(err)); },
+  });
+};
+
+export const useAdminListSkills = () => {
+  return useQuery({
+    queryKey: ['adminSkillsList'],
+    queryFn: async () => {
+      const { data } = await api.get('/admin/lms/skills');
+      return data.data as LmsSkill[];
+    },
+  });
+};
+

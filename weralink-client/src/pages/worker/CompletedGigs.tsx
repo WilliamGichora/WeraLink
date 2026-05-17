@@ -271,7 +271,7 @@ export default function CompletedGigs() {
       )}
 
       {/* Hidden Report Container for PDF Generation */}
-      <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
+      <div style={{ position: 'absolute', left: '-9999px', top: '-9999px', width: '794px' }}>
         {reportData && (
           <ReportShell 
             ref={reportRef} 

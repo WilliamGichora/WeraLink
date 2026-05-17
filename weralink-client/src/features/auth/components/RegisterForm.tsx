@@ -102,7 +102,7 @@ export function RegisterForm() {
             <Input 
               id="reg-phone" 
               type="tel" 
-              {...register("phone", { required: "Phone is required", pattern: /^[0-9]+$/ })}
+              {...register("phone", { required: "Phone is required"})}
               placeholder="+254 7XX XXX XXX" 
               className="pl-10 block w-full rounded-lg border-gray-200 bg-gray-50 text-text-main shadow-sm py-3 focus-visible:ring-primary-wera" 
             />

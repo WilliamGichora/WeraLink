@@ -213,7 +213,7 @@ export class AssignmentService {
           title: 'You got the gig!',
           message: `You have been hired for "${assignment.gig.title}". Escrow is funded and you can now begin work.`,
           type: 'ACCEPTED',
-          linkUrl: `/worker/gigs/${assignment.id}`
+          linkUrl: `/worker/assignments/${assignment.id}/submit`
         }
       });
 
@@ -278,6 +278,48 @@ export class AssignmentService {
 
       const autoApprove = new Date();
       autoApprove.setHours(autoApprove.getHours() + 72);
+
+      // --- NEW: Robust Validation against Gig's Evidence Template ---
+      const template = assignment.gig.evidenceTemplate;
+      if (template && Array.isArray(template)) {
+        for (const req of template) {
+          const submission = evidenceData.find(ev => ev.requirementTag === req.tag || ev.requirementTag === req.id);
+          
+          // 1. Check for required missing items
+          if (req.required && (!submission || !submission.fileUrl)) {
+            throw new Error(`Requirement "${req.label}" is mandatory but was not provided.`);
+          }
+
+          if (submission && submission.fileUrl) {
+            // 2. Validate Type consistency
+            // Note: req.type vs submission.evidenceType (from client)
+            const submissionType = submission.evidenceType;
+            
+            // File Extension Validation
+            if (req.accept && Array.isArray(req.accept) && req.accept.length > 0) {
+              const extension = '.' + submission.fileUrl.split('.').pop()?.toLowerCase().split('?')[0]; // Handle query params if any
+              if (!req.accept.includes(extension)) {
+                throw new Error(`Invalid file format for "${req.label}". Expected: ${req.accept.join(', ')}`);
+              }
+            }
+
+            // Link Pattern Validation (Social/Drive)
+            if (req.type === 'GOOGLE_DRIVE' && !submission.fileUrl.includes('drive.google.com')) {
+              throw new Error(`Requirement "${req.label}" must be a valid Google Drive link.`);
+            }
+            if (req.type === 'GITHUB' && !submission.fileUrl.includes('github.com')) {
+              throw new Error(`Requirement "${req.label}" must be a valid GitHub link.`);
+            }
+            if (req.type === 'TWITTER' && !submission.fileUrl.includes('twitter.com') && !submission.fileUrl.includes('x.com')) {
+              throw new Error(`Requirement "${req.label}" must be a valid Twitter/X link.`);
+            }
+            if (req.type === 'INSTAGRAM' && !submission.fileUrl.includes('instagram.com')) {
+              throw new Error(`Requirement "${req.label}" must be a valid Instagram link.`);
+            }
+          }
+        }
+      }
+      // --- END VALIDATION ---
 
       // Delete existing evidence to replace with the new list (Clean Slate for resubmission)
       await tx.evidence.deleteMany({

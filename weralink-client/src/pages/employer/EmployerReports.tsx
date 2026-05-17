@@ -9,6 +9,7 @@ import { downloadReportAsPdf } from '@/features/reports/utils/downloadPdf';
 import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useEmployerHiredWorkers } from '@/features/execution/api/execution.api';
+import { useAuth } from '@/features/auth/context/AuthContext';
 
 const EMPLOYER_REPORTS = [
   { id: 'spending', title: 'Spending Summary', desc: 'Expense breakdown by gig and category', icon: Wallet, endpoint: '/reports/employer/spending', color: 'bg-primary-wera/10 text-primary-wera' },
@@ -19,6 +20,7 @@ const EMPLOYER_REPORTS = [
 ];
 
 export default function EmployerReports() {
+  const { user } = useAuth();
   const [activeReport, setActiveReport] = useState<string | null>(null);
   const [reportData, setReportData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -111,7 +113,7 @@ export default function EmployerReports() {
             </Button>
           </div>
           <div className="overflow-x-auto border border-slate-200 rounded-2xl shadow-lg">
-            <ReportShell ref={reportRef} title={EMPLOYER_REPORTS.find(r => r.id === activeReport)?.title || ''} subtitle="Employer Report">
+            <ReportShell ref={reportRef} title={EMPLOYER_REPORTS.find(r => r.id === activeReport)?.title || ''} subtitle={`Employer Report · ${user?.name || ''}`}>
               {activeReport === 'spending' && <SpendingReport data={reportData} />}
               {activeReport === 'gig-activity' && <GigActivityReport data={reportData} />}
               {activeReport === 'payment-ledger' && <PaymentLedgerReport data={reportData} />}
@@ -192,8 +194,22 @@ function WorkerSelectModal({ isOpen, onClose, onSelect }: { isOpen: boolean, onC
 }
 
 function SpendingReport({ data }: { data: any }) {
+  const employer = data.employerInfo;
   return (
     <div>
+      {employer && (
+        <div className="mb-6 p-4 bg-slate-50 border border-slate-100 rounded-xl flex justify-between items-center">
+          <div>
+            <p className="text-[10px] font-black text-[#211112]/40 uppercase tracking-widest">Employer Profile</p>
+            <h4 className="text-sm font-black text-[#211112]">{employer.name}</h4>
+            {employer.companyName && <p className="text-[10px] font-bold text-slate-500">{employer.companyName}</p>}
+          </div>
+          <div className="text-right text-xs">
+            <p className="text-slate-500 font-bold">{employer.email}</p>
+            {employer.phone && <p className="text-slate-400 font-bold">{employer.phone}</p>}
+          </div>
+        </div>
+      )}
       <div className="grid grid-cols-2 gap-4 mb-8">
         <div className="bg-[#F6E8EA] rounded-xl p-4 text-center">
           <p className="text-[10px] font-bold text-[#211112]/40 uppercase tracking-wider">Total Spend</p>
@@ -227,8 +243,22 @@ function SpendingReport({ data }: { data: any }) {
 }
 
 function GigActivityReport({ data }: { data: any }) {
+  const employer = data.employerInfo;
   return (
     <div>
+      {employer && (
+        <div className="mb-6 p-4 bg-slate-50 border border-slate-100 rounded-xl flex justify-between items-center">
+          <div>
+            <p className="text-[10px] font-black text-[#211112]/40 uppercase tracking-widest">Client Profile</p>
+            <h4 className="text-sm font-black text-[#211112]">{employer.name}</h4>
+            {employer.companyName && <p className="text-[10px] font-bold text-slate-500">{employer.companyName}</p>}
+          </div>
+          <div className="text-right text-xs">
+            <p className="text-slate-500 font-bold">{employer.email}</p>
+            {employer.phone && <p className="text-slate-400 font-bold">{employer.phone}</p>}
+          </div>
+        </div>
+      )}
       <p className="text-sm font-bold text-[#211112]/60 mb-6">Total Gigs: <span className="text-[#211112] font-black">{data.totalGigs}</span></p>
       <table className="w-full text-sm">
         <thead><tr className="border-b-2 border-[#211112]/10">
@@ -255,8 +285,22 @@ function GigActivityReport({ data }: { data: any }) {
 }
 
 function PaymentLedgerReport({ data }: { data: any }) {
+  const employer = data.employerInfo;
   return (
     <div>
+      {employer && (
+        <div className="mb-6 p-4 bg-slate-50 border border-slate-100 rounded-xl flex justify-between items-center">
+          <div>
+            <p className="text-[10px] font-black text-[#211112]/40 uppercase tracking-widest">Client Profile</p>
+            <h4 className="text-sm font-black text-[#211112]">{employer.name}</h4>
+            {employer.companyName && <p className="text-[10px] font-bold text-slate-500">{employer.companyName}</p>}
+          </div>
+          <div className="text-right text-xs">
+            <p className="text-slate-500 font-bold">{employer.email}</p>
+            {employer.phone && <p className="text-slate-400 font-bold">{employer.phone}</p>}
+          </div>
+        </div>
+      )}
       <p className="text-sm font-bold text-[#211112]/60 mb-6">Total Transactions: <span className="text-[#211112] font-black">{data.totalTransactions}</span></p>
       <table className="w-full text-sm">
         <thead><tr className="border-b-2 border-[#211112]/10">
@@ -283,8 +327,22 @@ function PaymentLedgerReport({ data }: { data: any }) {
 }
 
 function HiringEfficiencyReport({ data }: { data: any }) {
+  const employer = data.employerInfo;
   return (
     <div>
+      {employer && (
+        <div className="mb-6 p-4 bg-slate-50 border border-slate-100 rounded-xl flex justify-between items-center">
+          <div>
+            <p className="text-[10px] font-black text-[#211112]/40 uppercase tracking-widest">Client Profile</p>
+            <h4 className="text-sm font-black text-[#211112]">{employer.name}</h4>
+            {employer.companyName && <p className="text-[10px] font-bold text-slate-500">{employer.companyName}</p>}
+          </div>
+          <div className="text-right text-xs">
+            <p className="text-slate-500 font-bold">{employer.email}</p>
+            {employer.phone && <p className="text-slate-400 font-bold">{employer.phone}</p>}
+          </div>
+        </div>
+      )}
       <div className="grid grid-cols-4 gap-4 mb-8">
         <div className="bg-[#F6E8EA] rounded-xl p-4 text-center">
           <p className="text-[10px] font-bold text-[#211112]/40 uppercase tracking-wider">Total Gigs</p>

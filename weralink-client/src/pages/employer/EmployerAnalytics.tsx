@@ -1,5 +1,5 @@
 import { useState, lazy, Suspense } from 'react';
-import { Wallet, Briefcase, Users, TrendingUp, BarChart3, ArrowLeft, Star, RotateCcw } from 'lucide-react';
+import { Wallet, Briefcase, Users, BarChart3, ArrowLeft, RotateCcw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useEmployerAnalytics } from '@/features/analytics/api/analytics.api';
 import { MetricCard } from '@/features/analytics/components/MetricCard';

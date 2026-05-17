@@ -9,7 +9,6 @@ import { MatchingPreview } from './components/MatchingPreview';
 import { LearningHubPreview } from './components/LearningHubPreview';
 import { FeaturedShowcase } from './components/FeaturedShowcase';
 import { useAuth } from '@/features/auth/context/AuthContext';
-import { WeraLinkLogo } from '@/components/ui/WeraLinkLogo';
 
 const LandingPage: React.FC = () => {
   const { user } = useAuth();
@@ -18,7 +17,7 @@ const LandingPage: React.FC = () => {
     <div className="flex flex-col min-h-screen bg-accent-dark text-white overflow-hidden font-sans">
       
       {/* HERO SECTION */}
-      <section className="relative min-h-[90vh] flex items-center pt-20 px-4 overflow-hidden">
+      <section className="relative min-h-[90vh] flex items-center pt-10 px-4 overflow-hidden">
         <Hero3D />
         
         <div className="container mx-auto relative z-10">
@@ -33,11 +32,11 @@ const LandingPage: React.FC = () => {
                 <span className="text-xs font-bold tracking-widest uppercase text-primary-wera">The Future of Kenya Gig Economy</span>
               </div>
 
-              <div className="mb-6">
+              {/*<div className="mb-6">
                 <WeraLinkLogo variant="primary" size="lg" />
-              </div>
+              </div>*/}
               
-              <h1 className="text-6xl md:text-8xl font-bold tracking-tighter mb-8 leading-[0.9]">
+              <h1 className="text-6xl md:text-7xl font-bold tracking-tighter mb-8 leading-[0.9]">
                 Where <span className="text-primary-wera">Elite</span> <br />
                 Talent Meets <br />
                 <span className="text-primary-wera">Impact</span>.

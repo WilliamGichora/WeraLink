@@ -30,7 +30,7 @@ export const MarketplaceFilterSidebar: React.FC<FilterProps> = ({
     setLocalFilters(prev => {
       const current = prev[key];
       const next = current.includes(value)
-        ? current.filter(v => v !== value)
+        ? current.filter((v: string) => v !== value)
         : [...current, value];
       return { ...prev, [key]: next };
     });

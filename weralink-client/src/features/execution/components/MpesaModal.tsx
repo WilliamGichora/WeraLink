@@ -63,7 +63,7 @@ export const MpesaModal = ({ isOpen, onClose, assignmentId, amount, onSuccess }:
         // If the gig was already funded (Escrow Credit), it returns status: SUCCESS immediately
         if (data.status === 'SUCCESS' || data.method === 'ESCROW_CREDIT') {
           setStep('SUCCESS');
-          const timer = setTimeout(() => {
+          setTimeout(() => {
             onSuccess();
             onClose();
             setStep('INPUT');
@@ -127,10 +127,10 @@ export const MpesaModal = ({ isOpen, onClose, assignmentId, amount, onSuccess }:
                 
                 <button 
                   onClick={handleTrigger}
-                  disabled={!phoneNumber || phoneNumber.length < 9}
+                  disabled={!phoneNumber || phoneNumber.length < 9 || isInitiating}
                   className="w-full bg-green-500 hover:bg-green-600 text-white font-bold text-lg py-4 rounded-xl shadow-[0_4px_14px_0_rgba(34,197,94,0.39)] hover:shadow-[0_6px_20px_rgba(34,197,94,0.23)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Pay KES {amount.toLocaleString()}
+                  {isInitiating ? 'Processing...' : `Pay KES ${amount.toLocaleString()}`}
                 </button>
               </div>
             </div>

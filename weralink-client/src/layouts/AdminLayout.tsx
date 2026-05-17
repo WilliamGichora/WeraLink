@@ -6,7 +6,7 @@ const adminNav = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard, end: true },
   { to: "/admin/users", label: "Users", icon: Users },
   { to: "/admin/gigs", label: "Gigs", icon: Wrench },
-  { to: "/admin/lms", label: "LMS", icon: GraduationCap },
+  { to: "/admin/lms", label: "Learning Hub", icon: GraduationCap },
   { to: "/admin/disputes", label: "Disputes", icon: Scale },
   { to: "/admin/support", label: "Support", icon: LifeBuoy },
   { to: "/admin/analytics", label: "Analytics", icon: BarChart3 },

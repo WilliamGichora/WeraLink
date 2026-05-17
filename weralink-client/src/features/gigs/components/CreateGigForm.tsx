@@ -373,17 +373,30 @@ export const CreateGigForm: React.FC<CreateGigFormProps> = ({ initialData, isEdi
                         <div className="md:col-span-4 space-y-3">
                           <Label className="text-accent-dark text-xs font-bold uppercase tracking-wider">Type</Label>
                           <Select
-                            onValueChange={(val: any) => setValue(`evidenceTemplate.${index}.type` as const, val)}
+                            onValueChange={(val: any) => {
+                              setValue(`evidenceTemplate.${index}.type` as const, val);
+                              // Auto-set accept based on type for stronger validation
+                              if (val === 'IMAGE') setValue(`evidenceTemplate.${index}.accept`, ['.jpg', '.jpeg', '.png', '.webp']);
+                              else if (val === 'PDF') setValue(`evidenceTemplate.${index}.accept`, ['.pdf']);
+                              else if (val === 'SPREADSHEET') setValue(`evidenceTemplate.${index}.accept`, ['.csv', '.xlsx', '.xls']);
+                              else setValue(`evidenceTemplate.${index}.accept`, []);
+                            }}
                             defaultValue={(field as any).type}
                           >
                             <SelectTrigger className="bg-white border-slate-200 text-text-main h-11 focus:border-primary-wera focus:ring-primary-wera">
                               <SelectValue placeholder="Select type" />
                             </SelectTrigger>
                             <SelectContent className="bg-white border-slate-200 text-text-main">
-                              <SelectItem value="FILE">File Document</SelectItem>
-                              <SelectItem value="IMAGE">Image / Screenshot</SelectItem>
-                              <SelectItem value="LINK">URL Link</SelectItem>
-                              <SelectItem value="TEXT">Text Answer</SelectItem>
+                              <SelectItem value="IMAGE">Image / Screenshot (.jpg, .png)</SelectItem>
+                              <SelectItem value="PDF">PDF Document (.pdf)</SelectItem>
+                              <SelectItem value="SPREADSHEET">Data Sheet (.csv, .xlsx)</SelectItem>
+                              <SelectItem value="FILE">Generic File (Any format)</SelectItem>
+                              <SelectItem value="GOOGLE_DRIVE">Google Drive Link</SelectItem>
+                              <SelectItem value="GITHUB">GitHub Repository</SelectItem>
+                              <SelectItem value="TWITTER">Twitter/X Link</SelectItem>
+                              <SelectItem value="INSTAGRAM">Instagram Post</SelectItem>
+                              <SelectItem value="LINK">Other URL Link</SelectItem>
+                              <SelectItem value="TEXT">Text Answer / Notes</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
@@ -398,63 +411,6 @@ export const CreateGigForm: React.FC<CreateGigFormProps> = ({ initialData, isEdi
                             />
                             <span className="ml-3 text-sm font-bold text-text-main">Mandatory</span>
                           </div>
-                        </div>
-
-                        {/* Extended Validation Logic */}
-                        <div className="col-span-full grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-100 mt-2">
-                          {watchAll.evidenceTemplate[index]?.type === 'FILE' && (
-                            <div className="space-y-3">
-                              <Label className="text-accent-dark text-xs font-bold uppercase tracking-wider">Accepted Formats</Label>
-                              <div className="flex flex-wrap gap-2">
-                                {['.pdf', '.docx', '.xlsx', '.csv', '.zip', '.txt'].map(ext => {
-                                  const currentAccept = watchAll.evidenceTemplate[index]?.accept || [];
-                                  const isSelected = currentAccept.includes(ext);
-                                  return (
-                                    <Badge 
-                                      key={ext}
-                                      variant={isSelected ? 'default' : 'outline'}
-                                      className={`cursor-pointer h-8 px-3 rounded-lg font-bold transition-all ${
-                                        isSelected ? 'bg-primary-wera text-white' : 'hover:border-primary-wera/50'
-                                      }`}
-                                      onClick={() => {
-                                        const next = isSelected 
-                                          ? currentAccept.filter((a: string) => a !== ext)
-                                          : [...currentAccept, ext];
-                                        setValue(`evidenceTemplate.${index}.accept` as const, next);
-                                      }}
-                                    >
-                                      {ext.toUpperCase()}
-                                    </Badge>
-                                  );
-                                })}
-                              </div>
-                              <p className="text-[10px] text-slate-400 font-medium">Leave empty to allow any file type.</p>
-                            </div>
-                          )}
-
-                          {watchAll.evidenceTemplate[index]?.type === 'LINK' && (
-                            <div className="space-y-3">
-                              <Label className="text-accent-dark text-xs font-bold uppercase tracking-wider">URL Pattern (Regex)</Label>
-                              <Input
-                                placeholder="e.g. .*drive\.google\.com.*"
-                                {...register(`evidenceTemplate.${index}.pattern` as const)}
-                                className="bg-white border-slate-200 text-text-main h-10 text-sm focus:border-primary-wera focus:ring-primary-wera"
-                              />
-                              <p className="text-[10px] text-slate-400 font-medium">Example: <code>.*drive\.google\.com.*</code> for Google Drive.</p>
-                            </div>
-                          )}
-
-                          {(watchAll.evidenceTemplate[index]?.type === 'FILE' || watchAll.evidenceTemplate[index]?.type === 'IMAGE') && (
-                            <div className="space-y-3">
-                              <Label className="text-accent-dark text-xs font-bold uppercase tracking-wider">Max Size (MB)</Label>
-                              <Input
-                                type="number"
-                                placeholder="10"
-                                {...register(`evidenceTemplate.${index}.maxSizeMB` as const, { valueAsNumber: true })}
-                                className="bg-white border-slate-200 text-text-main h-10 text-sm focus:border-primary-wera focus:ring-primary-wera"
-                              />
-                            </div>
-                          )}
                         </div>
                       </CardContent>
                     </Card>

@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
-import { ArrowLeft, FileText, Download, Loader2, Wallet, Briefcase, Award, Calendar } from 'lucide-react';
+import { ArrowLeft, FileText, Download, Loader2, Wallet, Briefcase, Award } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -7,6 +7,7 @@ import { api } from '@/lib/api';
 import { ReportShell } from '@/features/reports/components/ReportShell';
 import { downloadReportAsPdf } from '@/features/reports/utils/downloadPdf';
 import { format } from 'date-fns';
+import { useAuth } from '@/features/auth/context/AuthContext';
 
 const WORKER_REPORTS = [
   { id: 'earnings', title: 'Earnings Statement', desc: 'Monthly earnings breakdown with payment details', icon: Wallet, endpoint: '/reports/worker/earnings', color: 'bg-emerald-100 text-emerald-600' },
@@ -16,6 +17,7 @@ const WORKER_REPORTS = [
 ];
 
 export default function WorkerReports() {
+  const { user } = useAuth();
   const [activeReport, setActiveReport] = useState<string | null>(null);
   const [reportData, setReportData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -99,7 +101,7 @@ export default function WorkerReports() {
           </div>
 
           <div className="overflow-x-auto border border-slate-200 rounded-2xl shadow-lg">
-            <ReportShell ref={reportRef} title={WORKER_REPORTS.find(r => r.id === activeReport)?.title || ''} subtitle="Worker Report">
+            <ReportShell ref={reportRef} title={WORKER_REPORTS.find(r => r.id === activeReport)?.title || ''} subtitle={`Worker Report · ${user?.name || ''}`}>
               {activeReport === 'earnings' && <EarningsReport data={reportData} />}
               {activeReport === 'history' && <HistoryReport data={reportData} />}
               {activeReport === 'performance' && <PerformanceReport data={reportData} />}
@@ -115,8 +117,21 @@ export default function WorkerReports() {
 // ─── Individual Report Renderers ──────────────────────────
 
 function EarningsReport({ data }: { data: any }) {
+  const worker = data.workerInfo;
   return (
     <div>
+      {worker && (
+        <div className="mb-6 p-4 bg-slate-50 border border-slate-100 rounded-xl flex justify-between items-center">
+          <div>
+            <p className="text-[10px] font-black text-[#211112]/40 uppercase tracking-widest">Worker Profile</p>
+            <h4 className="text-sm font-black text-[#211112]">{worker.name}</h4>
+          </div>
+          <div className="text-right text-xs">
+            <p className="text-slate-500 font-bold">{worker.email}</p>
+            {worker.phone && <p className="text-slate-400 font-bold">{worker.phone}</p>}
+          </div>
+        </div>
+      )}
       <div className="grid grid-cols-3 gap-4 mb-8">
         <div className="bg-[#F6E8EA] rounded-xl p-4 text-center">
           <p className="text-[10px] font-bold text-[#211112]/40 uppercase tracking-wider">Total Earnings</p>
@@ -156,8 +171,21 @@ function EarningsReport({ data }: { data: any }) {
 }
 
 function HistoryReport({ data }: { data: any }) {
+  const worker = data.workerInfo;
   return (
     <div>
+      {worker && (
+        <div className="mb-6 p-4 bg-slate-50 border border-slate-100 rounded-xl flex justify-between items-center">
+          <div>
+            <p className="text-[10px] font-black text-[#211112]/40 uppercase tracking-widest">Worker Profile</p>
+            <h4 className="text-sm font-black text-[#211112]">{worker.name}</h4>
+          </div>
+          <div className="text-right text-xs">
+            <p className="text-slate-500 font-bold">{worker.email}</p>
+            {worker.phone && <p className="text-slate-400 font-bold">{worker.phone}</p>}
+          </div>
+        </div>
+      )}
       <p className="text-sm font-bold text-[#211112]/60 mb-6">Total Completed: <span className="text-[#211112] font-black">{data.totalCompleted}</span></p>
       <table className="w-full text-sm">
         <thead>
@@ -186,8 +214,21 @@ function HistoryReport({ data }: { data: any }) {
 }
 
 function PerformanceReport({ data }: { data: any }) {
+  const worker = data.workerInfo;
   return (
     <div>
+      {worker && (
+        <div className="mb-6 p-4 bg-slate-50 border border-slate-100 rounded-xl flex justify-between items-center">
+          <div>
+            <p className="text-[10px] font-black text-[#211112]/40 uppercase tracking-widest">Worker Profile</p>
+            <h4 className="text-sm font-black text-[#211112]">{worker.name}</h4>
+          </div>
+          <div className="text-right text-xs">
+            <p className="text-slate-500 font-bold">{worker.email}</p>
+            {worker.phone && <p className="text-slate-400 font-bold">{worker.phone}</p>}
+          </div>
+        </div>
+      )}
       <div className="grid grid-cols-3 gap-4 mb-8">
         <div className="bg-[#F6E8EA] rounded-xl p-4 text-center">
           <p className="text-[10px] font-bold text-[#211112]/40 uppercase tracking-wider">Avg Rating</p>

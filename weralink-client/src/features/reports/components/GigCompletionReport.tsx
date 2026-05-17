@@ -20,6 +20,10 @@ export function GigCompletionReport({ data }: { data: any }) {
               <span className="text-xs font-bold text-[#211112]">{data.gig?.employer?.name}</span>
             </li>
             <li className="flex justify-between">
+              <span className="text-xs text-[#211112]/60 font-bold">Worker:</span>
+              <span className="text-xs font-bold text-[#211112]">{data.worker?.name || data.workerName || '—'}</span>
+            </li>
+            <li className="flex justify-between">
               <span className="text-xs text-[#211112]/60 font-bold">Category:</span>
               <span className="text-xs font-bold text-[#211112]">{data.gig?.category?.replace(/_/g, ' ')}</span>
             </li>

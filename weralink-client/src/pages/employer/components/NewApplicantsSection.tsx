@@ -2,7 +2,7 @@ import React from 'react';
 import { useGetEmployerApplicants } from '@/features/execution/api/execution.api';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { UserCheck, ArrowRight, Star } from 'lucide-react';
+import { UserCheck, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 

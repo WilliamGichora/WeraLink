@@ -4,12 +4,9 @@ import {
   Briefcase,
   CheckCircle,
   Clock,
-  Wallet,
-  ArrowRightLeft,
   Award,
   Users,
   FileText,
-  Database,
   BarChart3,
   Target,
   History,
@@ -146,7 +143,7 @@ export const NAV_CONFIG: NavConfigMap = {
         }
       ]
     },
-    {
+    /*{
       title: "Payments",
       categories: [
         {
@@ -157,7 +154,7 @@ export const NAV_CONFIG: NavConfigMap = {
           ]
         }
       ]
-    },
+    },*/
     {
       title: "Insights",
       categories: [

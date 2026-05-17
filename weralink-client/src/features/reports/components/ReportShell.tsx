@@ -62,7 +62,7 @@ export const ReportShell = forwardRef<HTMLDivElement, ReportShellProps>(
         {/* ─── Footer ───────────────────────────────────────── */}
         <div className="px-12 py-4 border-t border-slate-200 flex items-center justify-between">
           <p className="text-[8px] text-[#211112]/30 font-bold">
-            © {new Date().getFullYear()} WeraLink · Confidential
+            © {new Date().getFullYear()} WeraLink Inc. All rights reserved. · Confidential
           </p>
           <p className="text-[8px] text-[#211112]/30 font-bold">
             Generated on {generatedDate}

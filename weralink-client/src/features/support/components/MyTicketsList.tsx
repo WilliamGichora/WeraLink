@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useGetMyTickets } from '@/features/support/api/support.api';
 import { CreateTicketModal } from './CreateTicketModal';
-import { LifeBuoy, Plus, Clock, MessageSquare, ChevronRight } from 'lucide-react';
+import { LifeBuoy, Plus, Clock, MessageSquare } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 const STATUS_COLORS: Record<string, string> = {
@@ -69,7 +69,7 @@ export function MyTicketsList() {
                   
                   {ticket.adminNotes && (
                     <div className="bg-slate-50 border border-slate-100 rounded-xl p-3 mb-3 text-sm">
-                      <span className="font-bold text-accent-dark text-xs uppercase tracking-widest block mb-1 flex items-center gap-1.5">
+                      <span className="font-bold text-accent-dark text-xs uppercase tracking-widest mb-1 flex items-center gap-1.5">
                         <MessageSquare className="w-3.5 h-3.5 text-primary-wera" /> Admin Response
                       </span>
                       <p className="text-text-main/70">{ticket.adminNotes}</p>

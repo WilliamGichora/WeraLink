@@ -17,7 +17,11 @@ export class ReportService {
   static async getWorkerEarningsData(workerId, { startDate, endDate } = {}) {
     const dateFilter = ReportService._buildDateFilter(startDate, endDate, 'completedAt');
 
-    const [transactions, aggregate] = await Promise.all([
+    const [worker, transactions, aggregate] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: workerId },
+        select: { name: true, email: true, phone: true }
+      }),
       prisma.transaction.findMany({
         where: {
           assignment: { workerId },
@@ -49,6 +53,7 @@ export class ReportService {
     return {
       reportType: 'EARNINGS',
       period: { startDate, endDate },
+      workerInfo: worker ? { name: worker.name, email: worker.email, phone: worker.phone } : null,
       summary: {
         totalEarnings: (aggregate._sum.amount || 0),
         totalPayouts: aggregate._count.id,
@@ -71,30 +76,37 @@ export class ReportService {
   static async getWorkerCompletionHistory(workerId, { startDate, endDate } = {}) {
     const dateFilter = ReportService._buildDateFilter(startDate, endDate, 'paidAt');
 
-    const assignments = await prisma.assignment.findMany({
-      where: {
-        workerId,
-        status: 'PAID',
-        ...dateFilter,
-      },
-      orderBy: { paidAt: 'desc' },
-      include: {
-        gig: {
-          select: { title: true, category: true, payAmount: true, currency: true, employer: { select: { name: true } } },
+    const [worker, assignments] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: workerId },
+        select: { name: true, email: true, phone: true }
+      }),
+      prisma.assignment.findMany({
+        where: {
+          workerId,
+          status: 'PAID',
+          ...dateFilter,
         },
-        ratings: {
-          where: { rateeId: workerId },
-          select: { score: true, dimensions: true, comment: true },
+        orderBy: { paidAt: 'desc' },
+        include: {
+          gig: {
+            select: { title: true, category: true, payAmount: true, currency: true, employer: { select: { name: true } } },
+          },
+          ratings: {
+            where: { rateeId: workerId },
+            select: { score: true, dimensions: true, comment: true },
+          },
+          evidence: {
+            select: { evidenceType: true, requirementTag: true },
+          },
         },
-        evidence: {
-          select: { evidenceType: true, requirementTag: true },
-        },
-      },
-    });
+      })
+    ]);
 
     return {
       reportType: 'HISTORY',
       period: { startDate, endDate },
+      workerInfo: worker ? { name: worker.name, email: worker.email, phone: worker.phone } : null,
       totalCompleted: assignments.length,
       assignments: assignments.map(a => ({
         id: a.id,
@@ -115,12 +127,17 @@ export class ReportService {
   /** W3: Performance Report Card */
   static async getWorkerPerformanceData(workerId) {
     const [
+      worker,
       ratingsSummary,
       completionRate,
       totalAssignments,
       badges,
       skills,
     ] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: workerId },
+        select: { name: true, email: true, phone: true }
+      }),
       prisma.rating.aggregate({
         where: { rateeId: workerId },
         _avg: { score: true },
@@ -140,6 +157,7 @@ export class ReportService {
 
     return {
       reportType: 'PERFORMANCE',
+      workerInfo: worker ? { name: worker.name, email: worker.email, phone: worker.phone } : null,
       avgRating: ratingsSummary._avg.score ? Math.round(ratingsSummary._avg.score * 10) / 10 : null,
       totalRatings: ratingsSummary._count.id,
       gigsCompleted: completionRate,
@@ -198,7 +216,11 @@ export class ReportService {
   static async getEmployerSpendingData(employerId, { startDate, endDate } = {}) {
     const dateFilter = ReportService._buildDateFilter(startDate, endDate, 'completedAt');
 
-    const [transactions, aggregate] = await Promise.all([
+    const [employer, transactions, aggregate] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: employerId },
+        select: { name: true, email: true, phone: true, profile: { select: { companyName: true } } }
+      }),
       prisma.transaction.findMany({
         where: {
           assignment: { gig: { employerId } },
@@ -231,6 +253,7 @@ export class ReportService {
     return {
       reportType: 'SPENDING',
       period: { startDate, endDate },
+      employerInfo: employer ? { name: employer.name, email: employer.email, phone: employer.phone, companyName: employer.profile?.companyName } : null,
       summary: {
         totalSpending: (aggregate._sum.amount || 0),
         totalTransactions: aggregate._count.id,
@@ -252,20 +275,27 @@ export class ReportService {
   static async getEmployerGigActivity(employerId, { startDate, endDate } = {}) {
     const dateFilter = ReportService._buildDateFilter(startDate, endDate, 'createdAt');
 
-    const gigs = await prisma.gig.findMany({
-      where: { employerId, ...dateFilter },
-      orderBy: { createdAt: 'desc' },
-      include: {
-        _count: { select: { assignments: true } },
-        assignments: {
-          select: { status: true, paidAt: true, acceptedAt: true },
+    const [employer, gigs] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: employerId },
+        select: { name: true, email: true, phone: true, profile: { select: { companyName: true } } }
+      }),
+      prisma.gig.findMany({
+        where: { employerId, ...dateFilter },
+        orderBy: { createdAt: 'desc' },
+        include: {
+          _count: { select: { assignments: true } },
+          assignments: {
+            select: { status: true, paidAt: true, acceptedAt: true },
+          },
         },
-      },
-    });
+      })
+    ]);
 
     return {
       reportType: 'GIG_ACTIVITY',
       period: { startDate, endDate },
+      employerInfo: employer ? { name: employer.name, email: employer.email, phone: employer.phone, companyName: employer.profile?.companyName } : null,
       totalGigs: gigs.length,
       gigs: gigs.map(g => {
         const statusCounts = {};
@@ -289,35 +319,40 @@ export class ReportService {
 
   /** E3: Worker Performance Review */
   static async getWorkerPerformanceReview(employerId, workerId) {
-    const assignments = await prisma.assignment.findMany({
-      where: {
-        workerId,
-        gig: { employerId },
-        status: 'PAID'
-      },
-      include: {
-        gig: { select: { title: true, category: true, payAmount: true } },
-        ratings: { where: { raterId: employerId }, select: { score: true, dimensions: true, comment: true } }
-      },
-      orderBy: { paidAt: 'desc' }
-    });
-
-    const totalRevisions = await prisma.assignment.count({
-      where: {
-        workerId,
-        gig: { employerId },
-        status: 'REVISION_REQUESTED'
-      }
-    });
-
-    const worker = await prisma.user.findUnique({
-      where: { id: workerId },
-      select: { name: true }
-    });
+    const [employer, assignments, totalRevisions, worker] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: employerId },
+        select: { name: true, email: true, phone: true, profile: { select: { companyName: true } } }
+      }),
+      prisma.assignment.findMany({
+        where: {
+          workerId,
+          gig: { employerId },
+          status: 'PAID'
+        },
+        include: {
+          gig: { select: { title: true, category: true, payAmount: true } },
+          ratings: { where: { raterId: employerId }, select: { score: true, dimensions: true, comment: true } }
+        },
+        orderBy: { paidAt: 'desc' }
+      }),
+      prisma.assignment.count({
+        where: {
+          workerId,
+          gig: { employerId },
+          status: 'REVISION_REQUESTED'
+        }
+      }),
+      prisma.user.findUnique({
+        where: { id: workerId },
+        select: { name: true }
+      })
+    ]);
 
     return {
       reportType: 'WORKER_REVIEW',
       workerName: worker?.name || 'Unknown Worker',
+      employerInfo: employer ? { name: employer.name, email: employer.email, phone: employer.phone, companyName: employer.profile?.companyName } : null,
       totalGigs: assignments.length,
       totalSpend: assignments.reduce((acc, a) => acc + Number(a.gig.payAmount), 0),
       totalRevisions,
@@ -337,25 +372,32 @@ export class ReportService {
   static async getEmployerPaymentLedger(employerId, { startDate, endDate } = {}) {
     const dateFilter = ReportService._buildDateFilter(startDate, endDate, 'initiatedAt');
 
-    const transactions = await prisma.transaction.findMany({
-      where: {
-        assignment: { gig: { employerId } },
-        ...dateFilter,
-      },
-      orderBy: { initiatedAt: 'desc' },
-      include: {
-        assignment: {
-          select: {
-            worker: { select: { name: true } },
-            gig: { select: { title: true } },
+    const [employer, transactions] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: employerId },
+        select: { name: true, email: true, phone: true, profile: { select: { companyName: true } } }
+      }),
+      prisma.transaction.findMany({
+        where: {
+          assignment: { gig: { employerId } },
+          ...dateFilter,
+        },
+        orderBy: { initiatedAt: 'desc' },
+        include: {
+          assignment: {
+            select: {
+              worker: { select: { name: true } },
+              gig: { select: { title: true } },
+            },
           },
         },
-      },
-    });
+      })
+    ]);
 
     return {
       reportType: 'PAYMENT_LEDGER',
       period: { startDate, endDate },
+      employerInfo: employer ? { name: employer.name, email: employer.email, phone: employer.phone, companyName: employer.profile?.companyName } : null,
       totalTransactions: transactions.length,
       transactions: transactions.map(t => ({
         id: t.id,
@@ -377,16 +419,22 @@ export class ReportService {
   static async getHiringEfficiency(employerId, { startDate, endDate } = {}) {
     const dateFilter = ReportService._buildDateFilter(startDate, endDate, 'createdAt');
 
-    const gigs = await prisma.gig.findMany({
-      where: { employerId, ...dateFilter },
-      include: {
-        _count: { select: { assignments: true } },
-        assignments: {
-          where: { status: { in: ['ACCEPTED', 'SUBMITTED', 'REVISION_REQUESTED', 'APPROVED', 'PAID'] } },
-          select: { offeredAt: true, acceptedAt: true, workerId: true }
+    const [employer, gigs] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: employerId },
+        select: { name: true, email: true, phone: true, profile: { select: { companyName: true } } }
+      }),
+      prisma.gig.findMany({
+        where: { employerId, ...dateFilter },
+        include: {
+          _count: { select: { assignments: true } },
+          assignments: {
+            where: { status: { in: ['ACCEPTED', 'SUBMITTED', 'REVISION_REQUESTED', 'APPROVED', 'PAID'] } },
+            select: { offeredAt: true, acceptedAt: true, workerId: true }
+          }
         }
-      }
-    });
+      })
+    ]);
 
     let totalApplicants = 0;
     let totalHires = 0;
@@ -420,6 +468,7 @@ export class ReportService {
     return {
       reportType: 'HIRING_EFFICIENCY',
       period: { startDate, endDate },
+      employerInfo: employer ? { name: employer.name, email: employer.email, phone: employer.phone, companyName: employer.profile?.companyName } : null,
       totalGigs: gigs.length,
       totalApplicants,
       totalHires,
@@ -666,6 +715,9 @@ export class ReportService {
           companyLogo: assignment.gig.employer.profile?.companyLogo,
         },
       },
+      worker: {
+        name: assignment.worker.name,
+      },
       timeline,
       metrics: {
         timeToAcceptHours: timeToAccept,
@@ -698,7 +750,7 @@ export class ReportService {
         },
         worker: {
           select: {
-            id: true, name: true, email: true,
+            id: true, name: true, email: true, phone: true,
             profile: { select: { bio: true, location: true, verified: true } },
             skills: { include: { skill: { select: { name: true, category: true } } }, take: 10 },
             ratingsRecv: { select: { score: true }, take: 50 },
@@ -747,6 +799,8 @@ export class ReportService {
       ? new Date(timeline.submitted) <= new Date(assignment.deadlineAt)
       : null;
 
+    const payoutTx = assignment.transactions.find(t => t.type === 'PAYOUT_TO_WORKER' && t.status === 'SUCCESS');
+
     return {
       reportType: 'EMPLOYER_ASSIGNMENT_REVIEW',
       gig: {
@@ -759,6 +813,7 @@ export class ReportService {
       workerProfile: {
         name: assignment.worker.name,
         email: assignment.worker.email,
+        phone: assignment.worker.phone,
         bio: assignment.worker.profile?.bio,
         location: assignment.worker.profile?.location,
         verified: assignment.worker.profile?.verified,
@@ -779,6 +834,7 @@ export class ReportService {
       evidence: assignment.evidence,
       ratings: assignment.ratings,
       transactions: assignment.transactions,
+      payment: payoutTx || null,
       dispute: assignment.dispute || null,
     };
   }

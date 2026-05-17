@@ -14,7 +14,6 @@ import {
   Clock, 
   Filter, 
   ChevronRight, 
-  Zap, 
   AlertCircle 
 } from 'lucide-react';
 
@@ -29,7 +28,7 @@ export default function GigApplicants() {
   const { data: gig, isLoading: gigLoading } = gigHooks.useGetGigById(gigId);
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [minScore, setMinScore] = useState(0);
+  const minScore = 0;
 
   const filteredApplicants = (applicants || []).filter((app: any) => {
     const matchesSearch = app.worker.name.toLowerCase().includes(searchQuery.toLowerCase());

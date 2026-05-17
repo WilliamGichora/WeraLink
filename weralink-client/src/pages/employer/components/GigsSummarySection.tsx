@@ -1,7 +1,6 @@
 import React from 'react';
 import { gigHooks } from '@/features/gigs/api/gig.api';
-import { Card, CardContent } from '@/components/ui/card';
-import { Briefcase, FileEdit, CheckCircle2, ChevronRight } from 'lucide-react';
+import { Briefcase, FileEdit, CheckCircle2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export const GigsSummarySection: React.FC = () => {

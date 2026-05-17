@@ -2,7 +2,7 @@ import { useGetWorkerAssignments } from '@/features/execution/api/execution.api'
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Clock, Building2, AlertCircle, PlayCircle, RefreshCcw, Briefcase, TrendingUp } from 'lucide-react';
+import { Clock, Building2, AlertCircle, PlayCircle, RefreshCcw, Briefcase } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function ActiveAssignments() {

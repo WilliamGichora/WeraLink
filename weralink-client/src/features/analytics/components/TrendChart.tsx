@@ -86,7 +86,7 @@ export const TrendChart = memo(function TrendChart({
               }}
               labelStyle={{ color: '#94a3b8', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase' }}
               itemStyle={{ color: '#fff', fontSize: '13px', fontWeight: 800 }}
-              formatter={(value: number) => [formatValue(value), title]}
+              formatter={(value: any) => [formatValue(value as number), title]}
             />
             <Area
               type="monotone"

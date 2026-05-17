@@ -36,7 +36,7 @@ export const useApplyForGig = () => {
  * Query to get assignments for the current worker
  */
 export const useGetWorkerAssignments = (statuses?: string[], options: any = {}) => {
-  return useQuery({
+  return useQuery<any[], Error>({
     queryKey: ['workerAssignments', statuses],
     queryFn: async () => {
       try {
@@ -188,7 +188,7 @@ export const useGetGigApplicants = (gigId: string | undefined) => {
  * Query to get all pending applications for an employer (Global view)
  */
 export const useGetEmployerApplicants = (params: any = {}) => {
-  return useQuery({
+  return useQuery<any[], Error>({
     queryKey: ['employerApplicants', params],
     queryFn: async () => {
       try {
@@ -205,7 +205,7 @@ export const useGetEmployerApplicants = (params: any = {}) => {
  * Query to get all pending reviews for an employer
  */
 export const useGetEmployerPendingReviews = () => {
-  return useQuery({
+  return useQuery<any[], Error>({
     queryKey: ['employerReviews'],
     queryFn: async () => {
       try {
@@ -222,7 +222,7 @@ export const useGetEmployerPendingReviews = () => {
  * Query to get all assignment history for an employer
  */
 export const useGetEmployerHistory = (statuses?: string[]) => {
-  return useQuery({
+  return useQuery<any[], Error>({
     queryKey: ['employerHistory', statuses],
     queryFn: async () => {
       try {
@@ -240,7 +240,7 @@ export const useGetEmployerHistory = (statuses?: string[]) => {
  * Query to get all distinct workers hired by the employer
  */
 export const useEmployerHiredWorkers = () => {
-  return useQuery({
+  return useQuery<any[], Error>({
     queryKey: ['employerHiredWorkers'],
     queryFn: async () => {
       try {
@@ -312,7 +312,7 @@ export const useGetTransactionStatus = (checkoutRequestId: string | null) => {
  * Query to get notifications for the current user
  */
 export const useGetNotifications = () => {
-  return useQuery({
+  return useQuery<any[], Error>({
     queryKey: ['notifications'],
     queryFn: async () => {
       try {

@@ -39,7 +39,7 @@ export default function EmployerApplicants() {
   });
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
 
-  const { data: applications, isLoading, refetch } = useGetEmployerApplicants(filters);
+  const { data: applications, isLoading } = useGetEmployerApplicants(filters);
 
   const debouncedSearch = useDebounce(searchQuery, 500);
 

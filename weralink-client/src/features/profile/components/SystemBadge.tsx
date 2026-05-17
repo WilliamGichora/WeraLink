@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldCheck, Award } from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
 
 interface SystemBadgeProps {
   badgeName: string;

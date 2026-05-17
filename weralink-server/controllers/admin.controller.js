@@ -70,6 +70,34 @@ export const editUser = async (req, res) => {
   }
 };
 
+// ─── Gig Management ────────────────────────────────────────
+
+export const listGigs = async (req, res) => {
+  try {
+    const { page, limit, search, status, difficulty, category, employerId, workerId, startDate, endDate, sortBy, order } = req.query;
+    const data = await AdminService.listGigs({
+      page: parseInt(page) || 1,
+      limit: parseInt(limit) || 20,
+      search, status, difficulty, category, employerId, workerId, startDate, endDate, sortBy, order
+    });
+    return respond(res, 200, data);
+  } catch (error) {
+    console.error('Admin List Gigs Error:', error.message);
+    return respond(res, 500, null, null, [{ code: 'INTERNAL_ERROR', message: 'Failed to list gigs.' }]);
+  }
+};
+
+export const getGigDetail = async (req, res) => {
+  try {
+    const data = await AdminService.getGigDetail(req.params.id);
+    if (!data) return respond(res, 404, null, null, [{ code: 'NOT_FOUND', message: 'Gig not found.' }]);
+    return respond(res, 200, data);
+  } catch (error) {
+    console.error('Admin Gig Detail Error:', error.message);
+    return respond(res, 500, null, null, [{ code: 'INTERNAL_ERROR', message: 'Failed to get gig detail.' }]);
+  }
+};
+
 // ─── Platform Stats ────────────────────────────────────────
 
 export const getPlatformStats = async (req, res) => {
@@ -153,3 +181,74 @@ export const updateTicketStatus = async (req, res) => {
     return respond(res, 500, null, null, [{ code: 'INTERNAL_ERROR', message: error.message }]);
   }
 };
+
+// ─── LMS & Learning Hub Management (Admin) ─────────────────
+
+export const listLmsModules = async (req, res) => {
+  try {
+    const { page, limit, search, category, skillId, isActive, startDate, endDate, sortBy, order } = req.query;
+    const data = await AdminService.listLmsModules({
+      page: parseInt(page) || 1,
+      limit: parseInt(limit) || 20,
+      search, category, skillId, isActive, startDate, endDate, sortBy, order
+    });
+    return respond(res, 200, data);
+  } catch (error) {
+    console.error('Admin List LMS Modules Error:', error.message);
+    return respond(res, 500, null, null, [{ code: 'INTERNAL_ERROR', message: 'Failed to list LMS modules.' }]);
+  }
+};
+
+export const getLmsModuleDetail = async (req, res) => {
+  try {
+    const data = await AdminService.getLmsModuleDetail(req.params.id);
+    if (!data) return respond(res, 404, null, null, [{ code: 'NOT_FOUND', message: 'LMS module not found.' }]);
+    return respond(res, 200, data);
+  } catch (error) {
+    console.error('Admin LMS Module Detail Error:', error.message);
+    return respond(res, 500, null, null, [{ code: 'INTERNAL_ERROR', message: 'Failed to get LMS module detail.' }]);
+  }
+};
+
+export const createLmsModule = async (req, res) => {
+  try {
+    const data = await AdminService.createLmsModule(req.body, req.user.id);
+    return respond(res, 201, data);
+  } catch (error) {
+    console.error('Admin Create LMS Module Error:', error.message);
+    return respond(res, 400, null, null, [{ code: 'BAD_REQUEST', message: error.message }]);
+  }
+};
+
+export const updateLmsModule = async (req, res) => {
+  try {
+    const data = await AdminService.updateLmsModule(req.params.id, req.body, req.user.id);
+    return respond(res, 200, data);
+  } catch (error) {
+    console.error('Admin Update LMS Module Error:', error.message);
+    const status = error.message.includes('not found') ? 404 : 400;
+    return respond(res, status, null, null, [{ code: 'ADMIN_ERROR', message: error.message }]);
+  }
+};
+
+export const deleteLmsModule = async (req, res) => {
+  try {
+    const data = await AdminService.deleteLmsModule(req.params.id, req.user.id);
+    return respond(res, 200, data);
+  } catch (error) {
+    console.error('Admin Delete LMS Module Error:', error.message);
+    const status = error.message.includes('not found') ? 404 : 400;
+    return respond(res, status, null, null, [{ code: 'ADMIN_ERROR', message: error.message }]);
+  }
+};
+
+export const listSkills = async (req, res) => {
+  try {
+    const data = await AdminService.listAllSkills();
+    return respond(res, 200, data);
+  } catch (error) {
+    console.error('Admin List Skills Error:', error.message);
+    return respond(res, 500, null, null, [{ code: 'INTERNAL_ERROR', message: 'Failed to list platform skills.' }]);
+  }
+};
+

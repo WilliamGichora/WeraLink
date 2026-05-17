@@ -49,6 +49,8 @@ const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
 const AdminDisputes = lazy(() => import("./pages/admin/AdminDisputes"));
 const AdminSupport = lazy(() => import("./pages/admin/AdminSupport"));
 const AdminLogin = lazy(() => import("./pages/admin/AdminLogin"));
+const AdminGigs = lazy(() => import("./pages/admin/AdminGigs"));
+const AdminLms = lazy(() => import("./pages/admin/AdminLms"));
 const WorkerRatings = lazy(() => import("./pages/worker/WorkerRatings"));
 const EmployerHistory = lazy(() => import("./pages/employer/EmployerHistory"));
 const EmployerRatings = lazy(() => import("./pages/employer/EmployerRatings"));
@@ -130,6 +132,8 @@ function App() {
               <Route path="analytics" element={<Suspense fallback={<PageLoader />}><AdminAnalytics /></Suspense>} />
               <Route path="reports" element={<Suspense fallback={<PageLoader />}><AdminReports /></Suspense>} />
               <Route path="users" element={<Suspense fallback={<PageLoader />}><AdminUsers /></Suspense>} />
+              <Route path="gigs" element={<Suspense fallback={<PageLoader />}><AdminGigs /></Suspense>} />
+              <Route path="lms" element={<Suspense fallback={<PageLoader />}><AdminLms /></Suspense>} />
               <Route path="disputes" element={<Suspense fallback={<PageLoader />}><AdminDisputes /></Suspense>} />
               <Route path="support" element={<Suspense fallback={<PageLoader />}><AdminSupport /></Suspense>} />
             </Route>

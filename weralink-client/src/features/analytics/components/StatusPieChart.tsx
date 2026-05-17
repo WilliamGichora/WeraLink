@@ -91,7 +91,7 @@ export const StatusPieChart = memo(function StatusPieChart({
                 boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
               }}
               itemStyle={{ color: '#fff', fontSize: '13px', fontWeight: 800 }}
-              formatter={(value: number) => [value, '']}
+              formatter={(value: any) => [value, '']}
             />
             <Legend
               verticalAlign="bottom"

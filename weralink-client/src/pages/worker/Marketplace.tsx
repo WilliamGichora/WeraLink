@@ -25,7 +25,7 @@ export default function MarketplacePage() {
     const [searchQuery, setSearchQuery] = useState(filters.search || '');
     const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
     
-    const { user, isAuthenticated } = useAuth();
+    const { isAuthenticated } = useAuth();
     const { 
         data, 
         isLoading,

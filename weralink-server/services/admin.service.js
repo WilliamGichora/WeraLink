@@ -243,6 +243,139 @@ export class AdminService {
     });
   }
 
+  // ─── Gig Management ────────────────────────────────────────
+
+  /**
+   * Lists all gigs on the platform with pagination and filters.
+   */
+  static async listGigs({
+    page = 1,
+    limit = 20,
+    search,
+    status,
+    difficulty,
+    category,
+    employerId,
+    workerId,
+    startDate,
+    endDate,
+    sortBy = 'createdAt',
+    order = 'desc',
+  } = {}) {
+    const where = {};
+
+    if (status) where.status = status;
+    if (difficulty) where.difficulty = difficulty;
+    if (category) where.category = category;
+    if (employerId) where.employerId = employerId;
+    if (workerId) {
+      where.assignments = {
+        some: { workerId },
+      };
+    }
+
+    if (startDate || endDate) {
+      where.createdAt = {};
+      if (startDate) where.createdAt.gte = new Date(startDate);
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        where.createdAt.lte = end;
+      }
+    }
+
+    if (search) {
+      where.OR = [
+        { title: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    const [gigs, total] = await Promise.all([
+      prisma.gig.findMany({
+        where,
+        include: {
+          employer: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              phone: true,
+              profile: {
+                select: {
+                  companyName: true,
+                  companyLogo: true,
+                },
+              },
+            },
+          },
+          _count: { select: { assignments: true } },
+        },
+        orderBy: { [sortBy]: order },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      prisma.gig.count({ where }),
+    ]);
+
+    return {
+      gigs,
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    };
+  }
+
+  /**
+   * Retrieves full details of a specific gig, including all assignments, evidence, and transactions.
+   */
+  static async getGigDetail(gigId) {
+    const gig = await prisma.gig.findUnique({
+      where: { id: gigId },
+      include: {
+        employer: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+            profile: true,
+          },
+        },
+        skills: {
+          include: {
+            skill: {
+              select: {
+                id: true,
+                name: true,
+                category: true,
+              },
+            },
+          },
+        },
+        assignments: {
+          include: {
+            worker: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                phone: true,
+              },
+            },
+            evidence: true,
+            transactions: true,
+            ratings: true,
+            dispute: true,
+          },
+        },
+        _count: {
+          select: { assignments: true },
+        },
+      },
+    });
+
+    return gig;
+  }
+
   // ─── Platform Stats ───────────────────────────────────────
 
   /**
@@ -319,5 +452,298 @@ export class AdminService {
     } catch (err) {
       console.error('[AdminService] Activity log failed (non-blocking):', err.message);
     }
+  }
+
+  // ─── LMS & Learning Hub Management ────────────────────────
+
+  /**
+   * Lists all training modules with pagination and extensive filters.
+   */
+  static async listLmsModules({
+    page = 1,
+    limit = 20,
+    search,
+    category,
+    skillId,
+    isActive,
+    startDate,
+    endDate,
+    sortBy = 'createdAt',
+    order = 'desc',
+  } = {}) {
+    const where = {};
+
+    if (skillId) where.skillId = skillId;
+    if (category) {
+      where.skill = {
+        category: category,
+      };
+    }
+    if (isActive !== undefined && isActive !== '') {
+      where.isActive = isActive === 'true' || isActive === true;
+    }
+
+    if (startDate || endDate) {
+      where.createdAt = {};
+      if (startDate) where.createdAt.gte = new Date(startDate);
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        where.createdAt.lte = end;
+      }
+    }
+
+    if (search) {
+      where.title = { contains: search, mode: 'insensitive' };
+    }
+
+    const [modules, total] = await Promise.all([
+      prisma.trainingModule.findMany({
+        where,
+        include: {
+          skill: {
+            select: { id: true, name: true, category: true },
+          },
+          _count: {
+            select: { questions: true, completions: true },
+          },
+        },
+        orderBy: { [sortBy]: order },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      prisma.trainingModule.count({ where }),
+    ]);
+
+    // Gather completions stats per module in parallel
+    const modulesWithStats = await Promise.all(
+      modules.map(async (mod) => {
+        const completionsStats = await prisma.moduleCompletion.aggregate({
+          where: { moduleId: mod.id },
+          _avg: { score: true },
+        });
+
+        const passedCount = await prisma.moduleCompletion.count({
+          where: { moduleId: mod.id, passed: true },
+        });
+
+        return {
+          ...mod,
+          stats: {
+            totalCompletions: mod._count.completions,
+            passedCompletions: passedCount,
+            avgScore: completionsStats._avg.score || 0,
+            passRate: mod._count.completions > 0 ? (passedCount / mod._count.completions) * 100 : 0,
+          },
+        };
+      })
+    );
+
+    return {
+      modules: modulesWithStats,
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    };
+  }
+
+  /**
+   * Retrieves full details for a single training module.
+   */
+  static async getLmsModuleDetail(id) {
+    const module = await prisma.trainingModule.findUnique({
+      where: { id },
+      include: {
+        skill: {
+          select: { id: true, name: true, category: true },
+        },
+        questions: {
+          include: {
+            options: {
+              select: { id: true, text: true, isCorrect: true },
+            },
+          },
+        },
+        completions: {
+          include: {
+            user: {
+              select: { id: true, name: true, email: true },
+            },
+          },
+          orderBy: { completedAt: 'desc' },
+        },
+      },
+    });
+
+    if (!module) return null;
+
+    // Gather aggregate stats
+    const completionsStats = await prisma.moduleCompletion.aggregate({
+      where: { moduleId: id },
+      _avg: { score: true },
+    });
+
+    const totalCompletions = module.completions.length;
+    const passedCount = module.completions.filter((c) => c.passed).length;
+
+    return {
+      ...module,
+      stats: {
+        totalCompletions,
+        passedCompletions: passedCount,
+        avgScore: completionsStats._avg.score || 0,
+        passRate: totalCompletions > 0 ? (passedCount / totalCompletions) * 100 : 0,
+      },
+    };
+  }
+
+  /**
+   * Creates a new training module atomically inside a transaction.
+   */
+  static async createLmsModule(data, adminId) {
+    const { title, skillId, videoUrl, docUrl, passScore, isActive, questions } = data;
+
+    return await prisma.$transaction(async (tx) => {
+      // 1. Create Training Module
+      const module = await tx.trainingModule.create({
+        data: {
+          title,
+          skillId,
+          videoUrl,
+          docUrl,
+          passScore: passScore !== undefined ? parseInt(passScore) : 80,
+          isActive: isActive !== undefined ? (isActive === 'true' || isActive === true) : true,
+        },
+      });
+
+      // 2. Create questions and options if provided
+      if (questions && Array.isArray(questions) && questions.length > 0) {
+        for (const q of questions) {
+          const question = await tx.question.create({
+            data: {
+              moduleId: module.id,
+              text: q.text,
+            },
+          });
+
+          if (q.options && Array.isArray(q.options) && q.options.length > 0) {
+            await tx.option.createMany({
+              data: q.options.map((opt) => ({
+                questionId: question.id,
+                text: opt.text,
+                isCorrect: opt.isCorrect === true || opt.isCorrect === 'true',
+              })),
+            });
+          }
+        }
+      }
+
+      // Log admin activity
+      await tx.userActivity.create({
+        data: {
+          userId: adminId,
+          action: 'LMS_MODULE_CREATED',
+          metadata: { moduleId: module.id, title: module.title },
+        },
+      });
+
+      return module;
+    });
+  }
+
+  /**
+   * Updates an existing training module atomically inside a transaction.
+   */
+  static async updateLmsModule(id, data, adminId) {
+    const { title, skillId, videoUrl, docUrl, passScore, isActive, questions } = data;
+
+    return await prisma.$transaction(async (tx) => {
+      // Check if module exists
+      const existing = await tx.trainingModule.findUnique({ where: { id } });
+      if (!existing) throw new Error('Training module not found');
+
+      // 1. Update Training Module fields
+      const updateData = {};
+      if (title !== undefined) updateData.title = title;
+      if (skillId !== undefined) updateData.skillId = skillId;
+      if (videoUrl !== undefined) updateData.videoUrl = videoUrl;
+      if (docUrl !== undefined) updateData.docUrl = docUrl;
+      if (passScore !== undefined) updateData.passScore = parseInt(passScore);
+      if (isActive !== undefined) updateData.isActive = (isActive === 'true' || isActive === true);
+
+      const module = await tx.trainingModule.update({
+        where: { id },
+        data: updateData,
+      });
+
+      // 2. Re-create questions and options if provided
+      if (questions && Array.isArray(questions)) {
+        // Cascade delete existing questions (Prisma onDelete: Cascade will take care of options!)
+        await tx.question.deleteMany({
+          where: { moduleId: id },
+        });
+
+        // Insert new ones
+        for (const q of questions) {
+          const question = await tx.question.create({
+            data: {
+              moduleId: id,
+              text: q.text,
+            },
+          });
+
+          if (q.options && Array.isArray(q.options) && q.options.length > 0) {
+            await tx.option.createMany({
+              data: q.options.map((opt) => ({
+                questionId: question.id,
+                text: opt.text,
+                isCorrect: opt.isCorrect === true || opt.isCorrect === 'true',
+              })),
+            });
+          }
+        }
+      }
+
+      // Log admin activity
+      await tx.userActivity.create({
+        data: {
+          userId: adminId,
+          action: 'LMS_MODULE_UPDATED',
+          metadata: { moduleId: id, title: module.title },
+        },
+      });
+
+      return module;
+    });
+  }
+
+  /**
+   * Cascade deletes a training module.
+   */
+  static async deleteLmsModule(id, adminId) {
+    return await prisma.$transaction(async (tx) => {
+      const module = await tx.trainingModule.findUnique({ where: { id } });
+      if (!module) throw new Error('Training module not found');
+
+      await tx.trainingModule.delete({ where: { id } });
+
+      // Log admin activity
+      await tx.userActivity.create({
+        data: {
+          userId: adminId,
+          action: 'LMS_MODULE_DELETED',
+          metadata: { moduleId: id, title: module.title },
+        },
+      });
+
+      return { success: true };
+    });
+  }
+
+  /**
+   * Lists all platform skills for LMS skill selection dropdowns.
+   */
+  static async listAllSkills() {
+    return await prisma.skill.findMany({
+      orderBy: { name: 'asc' },
+    });
   }
 }

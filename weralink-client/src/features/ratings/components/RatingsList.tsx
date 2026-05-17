@@ -1,4 +1,4 @@
-import { Star, User, MessageSquare, Calendar } from 'lucide-react';
+import { Star, MessageSquare, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
 import { memo } from 'react';

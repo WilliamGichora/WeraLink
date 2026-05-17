@@ -1,4 +1,4 @@
-import { useState, useEffect, ChangeEvent } from 'react';
+import { useState, useEffect, type ChangeEvent } from 'react';
 import { ArrowLeft, CheckCircle, AlertTriangle, AlertCircle, MessageSquare, Clock, Download, ExternalLink, FileText, Camera, Info, X, Star, RefreshCcw } from 'lucide-react';
 import { useGetAssignmentById, useReviewWork, useGetDownloadUrl, useGetTransactionByAssignment, useRetryPayout } from '@/features/execution/api/execution.api';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -43,7 +43,6 @@ export default function ReviewSubmission() {
       const res = await api.get(`/reports/employer/assignment-report/${assignmentId}`);
       setReportData(res.data.data);
       
-      // Allow React to render the hidden report component before capturing PDF
       setTimeout(async () => {
         if (reportRef.current) {
           try {
@@ -451,7 +450,7 @@ export default function ReviewSubmission() {
       )}
 
       {/* Hidden Report Container for PDF Generation */}
-      <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
+      <div style={{ position: 'absolute', left: '-9999px', top: '-9999px', width: '794px' }}>
         {reportData && (
           <ReportShell 
             ref={reportRef} 
