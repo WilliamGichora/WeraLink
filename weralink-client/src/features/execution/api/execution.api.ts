@@ -311,18 +311,18 @@ export const useGetTransactionStatus = (checkoutRequestId: string | null) => {
 /**
  * Query to get notifications for the current user
  */
-export const useGetNotifications = () => {
+export const useGetNotifications = (num?: number) => {
   return useQuery<any[], Error>({
     queryKey: ['notifications'],
     queryFn: async () => {
       try {
-        const response = await api.get<{ success: boolean; data: any[] }>('/notifications');
+        const response = await api.get<{ success: boolean; data: any[] }>('/notifications', { params: { num } });
         return response.data.data as any[];
       } catch (error) {
         throw new Error(extractErrorMessage(error));
       }
     },
-    refetchInterval: 30000, // Refresh every 30 seconds
+    refetchInterval: 30000,
   });
 };
 

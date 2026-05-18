@@ -42,8 +42,8 @@ export const AppFooter: React.FC = () => {
           <div className="flex flex-col gap-3">
             <h4 className="font-semibold text-white mb-2">Platform</h4>
             <Link to="/how-it-works" className="text-gray-400 hover:text-primary-wera transition-colors">How it Works</Link>
-            <Link to="/gigs" className="text-gray-400 hover:text-primary-wera transition-colors">Browse Gigs</Link>
-            <Link to="/badges" className="text-gray-400 hover:text-primary-wera transition-colors">Skill Badges</Link>
+            <Link to="/Marketplace" className="text-gray-400 hover:text-primary-wera transition-colors">Browse Gigs</Link>
+            <Link to="/learning-hub" className="text-gray-400 hover:text-primary-wera transition-colors">Learn</Link>
             <Link to="/pricing" className="text-gray-400 hover:text-primary-wera transition-colors">Pricing & Escrow</Link>
           </div>
 

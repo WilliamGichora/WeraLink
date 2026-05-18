@@ -9,12 +9,14 @@ export class NotificationController {
   static async getUserNotifications(req, res) {
     try {
       const userId = req.user?.id || req.query.userId; // Fallback for testing
+      const num = req.params.num || 20;
       
       if (!userId) {
         return errorResponse(res, { message: 'User not authenticated', code: 'UNAUTHORIZED' }, 401);
       }
 
-      const notifications = await NotificationService.getUserNotifications(userId);
+      
+      const notifications = await NotificationService.getUserNotifications(userId, num);
       return successResponse(res, notifications);
     } catch (error) {
       return errorResponse(res, error);

@@ -4,7 +4,7 @@ import { Bell, Clock, CheckCircle2, AlertCircle, Wallet } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export const WorkerActivityFeed: React.FC = () => {
-    const { data: notificationsData, isLoading } = useGetNotifications();
+    const { data: notificationsData, isLoading } = useGetNotifications(3);
     const notifications = Array.isArray(notificationsData) ? notificationsData : [];
 
     if (isLoading) {
@@ -35,7 +35,7 @@ export const WorkerActivityFeed: React.FC = () => {
 
     return (
         <div className="space-y-4">
-            {notifications.slice(0, 5).map((notif: any, index: number) => (
+            {notifications.slice(0, 3).map((notif: any, index: number) => (
                 <motion.div 
                     key={notif.id}
                     initial={{ opacity: 0, x: -10 }}
@@ -44,7 +44,7 @@ export const WorkerActivityFeed: React.FC = () => {
                     className="flex gap-3 relative"
                 >
                     {index !== notifications.slice(0, 5).length - 1 && (
-                        <div className="absolute left-[15px] top-8 bottom-[-16px] w-[1px] bg-slate-100 dark:bg-gray-700"></div>
+                        <div className="absolute left-[15px] top-8 bottom-[-16px] w-px bg-slate-100 dark:bg-gray-700"></div>
                     )}
                     <div className="w-8 h-8 rounded-full bg-white dark:bg-gray-700 shadow-sm border border-slate-100 dark:border-gray-600 flex items-center justify-center shrink-0 z-10">
                         {getIcon(notif.type)}

@@ -4,11 +4,11 @@ class NotificationService {
   /**
    * Get all notifications for a specific user
    */
-  static async getUserNotifications(userId) {
+  static async getUserNotifications(userId, num = 20) {
     return await prisma.notification.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
-      take: 20 // Limit to latest 20
+      take: num 
     });
   }
 

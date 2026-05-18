@@ -292,7 +292,7 @@ export class AssignmentService {
 
           if (submission && submission.fileUrl) {
             // 2. Validate Type consistency
-            // Note: req.type vs submission.evidenceType (from client)
+            //req.type vs submission.evidenceType (from client)
             const submissionType = submission.evidenceType;
             
             // File Extension Validation
